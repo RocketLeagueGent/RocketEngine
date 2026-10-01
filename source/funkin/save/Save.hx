@@ -29,6 +29,24 @@ class Save implements ConsoleClass
   public static var system:SaveSystem = new SaveSystem();
 
   /**
+   * flixel's `FlxSave` treats `'` as an invalid character in save names/paths and
+   * replaces it with `-`, which would turn our save path `Rocket/Funkin'` into
+   * `Rocket/Funkin-`. Relax that one restriction before any save is bound.
+   * Runs at program startup (before `Save.load()`), with `load()` re-asserting it
+   * in case static initialization order on static targets ever gets in our way.
+   */
+  @:access(flixel.util.FlxSave)
+  static function relaxSavePathValidation():Void
+  {
+    FlxSave.invalidChars = ~/[ ~%&\\;:"<>?#]+/g;
+  }
+
+  static function __init__():Void
+  {
+    relaxSavePathValidation();
+  }
+
+  /**
    * Singleton for our Save class
    */
   public static var instance(get, never):Save;
@@ -46,6 +64,9 @@ class Save implements ConsoleClass
   public static function load():Save
   {
     trace(' SAVE '.bold().bg_note_down() + ' Loading save...');
+
+    // Re-assert the FlxSave path validation patch before any bind happens.
+    relaxSavePathValidation();
 
     // Bind save data.
     final loadedSave:Save = loadFromSlot(Constants.BASE_SAVE_SLOT);

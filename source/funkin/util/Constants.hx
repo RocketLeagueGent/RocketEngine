@@ -733,7 +733,7 @@ class Constants
   /**
    * The path where our save data will be stored.
    */
-  public static inline final SAVE_PATH:String = 'FunkinCrew';
+  public static inline final SAVE_PATH:String = "Rocket/Funkin'";
 
   /**
    * The name of our save slot.

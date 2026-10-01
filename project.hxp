@@ -32,34 +32,34 @@ class Project extends HXProject
    * REMEMBER TO CHANGE THIS WHEN THE GAME UPDATES!
    * You only have to change it here, the rest of the game will query this value.
    */
-  static final VERSION:String = "0.8.7";
+  static final VERSION:String = "0.0.1 ALPHA";
 
   /**
    * The build's number and version code.
    * Used when publishing the game to mobile app stores. Should increment with each patch.
    */
-  static final BUILD_NUMBER:Int = 102;
+  static final BUILD_NUMBER:Int = 100;
 
   /**
    * The game's name. Used as the default window title.
    */
-  static final TITLE:String = "Friday Night Funkin'";
+  static final TITLE:String = "Friday Night Funkin' Rocket Engine";
 
   /**
    * The game's name on mobile. Used as the title for the game on the home screen.
    */
-  static final TITLE_MOBILE:String = "FNF";
+  static final TITLE_MOBILE:String = "Rocket Engine";
 
   /**
    * A package name used for identifying the app on various app stores.
    */
-  static final PACKAGE_NAME:String = "me.funkin.fnf";
+  static final PACKAGE_NAME:String = "me.rocket.fnfre";
 
   /**
    * The name of the generated executable file.
    * For example, `"Funkin"` will create a file called `Funkin.exe`.
    */
-  static final EXECUTABLE_NAME:String = "Funkin";
+  static final EXECUTABLE_NAME:String = "RocketEngine";
 
   /**
    * The relative location of the source code.
@@ -87,7 +87,7 @@ class Project extends HXProject
    * The company name for the game.
    * This appears in metadata in places I think.
    */
-  static final COMPANY:String = "The Funkin' Crew";
+  static final COMPANY:String = "The Rocket Engine Team";
 
   /**
    * The app's localization languages.
@@ -105,13 +105,16 @@ class Project extends HXProject
   //
 
   /**
-   * The app's lime Android java extensions.
+   * The app's minimal Android SDK version.
    */
-  static final ANDROID_EXTENSIONS:Array<String> = [
-    "funkin.extensions.CallbackUtil",
-    "funkin.extensions.FNFCExtension",
-    "funkin.extensions.AudioSession"
-  ];
+  static final ANDROID_MINIMUM_SDK_VERSION:Int = 28;
+
+  /**
+   * The app's target Android SDK version.
+   */
+  static final ANDROID_TARGET_SDK_VERSION:Int = 35;
+
+  static final ANDROID_EXTENSIONS:Array<String> = ["funkin.extensions.CallbackUtil", "funkin.extensions.FNFCExtension", "funkin.extensions.AudioSession"];
 
   /**
    * The team ID to use for the iOS app. Configured in XCode.
@@ -690,6 +693,9 @@ class Project extends HXProject
         this.excludeArchitectures.push(Architecture.ARMV7);
       }
 
+      config.set("android.minimum-sdk-version", ANDROID_MINIMUM_SDK_VERSION);
+      config.set("android.target-sdk-version", ANDROID_TARGET_SDK_VERSION);
+
       if (isRelease())
       {
         if (envConfig != null)
@@ -1162,17 +1168,7 @@ class Project extends HXProject
 
     modsFolderProvider.addChild(intentFilter);
 
-    @:nullSafety(Off)
-    {
-      if (config.get('android.application').xmlChildren != null)
-      {
-        config.get('android.application').xmlChildren.push(Printer.print(modsFolderProvider, true));
-      }
-      else
-      {
-        config.get('android.application').xmlChildren = [Printer.print(modsFolderProvider, true)];
-      }
-    }
+    // xmlChildren not supported on this version of Lime
 
     // Custom android.activity XML Children for the AndroidManifest
     final intentFilter:Xml = Xml.createElement('intent-filter');
@@ -1207,17 +1203,7 @@ class Project extends HXProject
       }
     }
 
-    @:nullSafety(Off)
-    {
-      if (config.get('android.activity').xmlChildren != null)
-      {
-        config.get('android.activity').xmlChildren.push(Printer.print(intentFilter, true));
-      }
-      else
-      {
-        config.get('android.activity').xmlChildren = [Printer.print(intentFilter, true)];
-      }
-    }
+    // xmlChildren not supported on this version of Lime
 
     final extensions:Null<Array<String>> = config.getArrayString('android.extension');
 
@@ -1570,8 +1556,7 @@ class Project extends HXProject
 
     if (isAndroid())
     {
-      // Adaptive icons
-      adaptiveIcon = new AdaptiveIcon('art/icons/android/', true);
+      // Adaptive icons not supported on this version of Lime
     }
     else if (isIOS())
     {
@@ -1598,10 +1583,10 @@ class Project extends HXProject
     }
     else
     {
-      addIcon("art/icons/icon16.png", 16);
-      addIcon("art/icons/icon32.png", 32);
-      addIcon("art/icons/icon64.png", 64);
-      addIcon("art/icons/iconOG.png");
+      addIcon("art/desktop/icon16.png", 16);
+      addIcon("art/desktop/icon32.png", 32);
+      addIcon("art/desktop/icon64.png", 64);
+      addIcon("art/desktop/iconOG.png");
     }
 
     info('Done configuring icons.');
@@ -1860,11 +1845,6 @@ class Project extends HXProject
     @:nullSafety(Off)
     {
       asset.library = library ?? "default";
-    }
-
-    if (padName != null && isBundle())
-    {
-      asset.deliveryPackName = padName;
     }
 
     this.assets.push(asset);

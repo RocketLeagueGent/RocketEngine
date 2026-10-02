@@ -37,9 +37,6 @@ import funkin.ui.story.StoryMenuState;
 import funkin.util.HapticUtil;
 import funkin.graphics.ScriptedFunkinSprite;
 import funkin.ui.debug.charting.ChartEditorState;
-#if FEATURE_NEWGROUNDS
-import funkin.api.newgrounds.Medals;
-#end
 #if mobile
 import funkin.util.TouchUtil;
 #if FEATURE_MOBILE_ADVERTISEMENTS
@@ -611,12 +608,6 @@ class ResultState extends MusicBeatSubState
 
         // Just to be sure that the lerp didn't mess things up.
         clearPercentCounter.curNumber = clearPercentTarget;
-
-        #if FEATURE_NEWGROUNDS
-        var isScoreValid = !(params?.isPracticeMode ?? false) && !(params?.isBotPlayMode ?? false);
-        // This is the easiest spot to do the medal calculation lol.
-        if (isScoreValid && clearPercentTarget == 69) Medals.award(Nice);
-        #end
 
         clearPercentCounter.flash(true);
         new FlxTimer().start(0.4, _ ->

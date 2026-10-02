@@ -33,9 +33,6 @@ import openfl.display.BlendMode;
 import openfl.filters.ShaderFilter;
 import openfl.filters.BitmapFilter;
 import openfl.filters.DropShadowFilter;
-#if FEATURE_NEWGROUNDS
-import funkin.api.newgrounds.Medals;
-#end
 #if FEATURE_TOUCH_CONTROLS
 import funkin.util.TouchUtil;
 #end
@@ -450,11 +447,6 @@ class CharSelectSubState extends MusicBeatSubState
     });
     else
     {
-      #if FEATURE_NEWGROUNDS
-      // Make the character unlock medal retroactive.
-      if (availableChars.size() > 1) Medals.award(CharSelect);
-      #end
-
       FunkinSound.playMusic('stayFunky', {
         startingVolume: 1,
         overrideExisting: true,
@@ -598,11 +590,6 @@ class CharSelectSubState extends MusicBeatSubState
           playerChillOut.visible = false;
           playerChillOut.switchChar(char);
         });
-
-        #if FEATURE_NEWGROUNDS
-        // Grant the medal when the player unlocks a character.
-        Medals.award(CharSelect);
-        #end
 
         Save.instance.addCharacterSeen(char);
         if (nonLocks.length == 0)

@@ -16,10 +16,6 @@ import funkin.util.macro.SaveMacro;
 import funkin.util.SerializerUtil;
 import funkin.mobile.ui.FunkinHitbox;
 import thx.semver.Version;
-#if FEATURE_NEWGROUNDS
-import funkin.api.newgrounds.Medals;
-import funkin.api.newgrounds.Leaderboards;
-#end
 
 @:nullSafety @:build(funkin.util.macro.SaveMacro.buildSaveProperties())
 class Save implements ConsoleClass
@@ -105,17 +101,13 @@ class Save implements ConsoleClass
       version: thx.Dynamics.clone(Save.SAVE_DATA_VERSION),
       volume: 1.0,
       mute: false,
-      api: {
-        newgrounds: {
-          sessionId: null,
-        }
-      },
       scores: {
         // No saved scores.
         levels: [],
         songs: [],
       },
       favoriteSongs: [],
+      leaderboardUsername: '',
       options: {
         // Reasonable defaults.
         framerate: #if mobile refreshRate #else 60 #end,
@@ -252,14 +244,14 @@ class Save implements ConsoleClass
   public var mute:SaveProperty<Bool>;
 
   ///
-  /// API
+  /// LEADERBOARD
   ///
-
   /**
-   * The current session ID for the logged-in Newgrounds user, or null if the user is cringe.
+   * The username the user chose for leaderboard submissions.
+   * Empty string means the user has not picked one yet.
    */
-  @:saveProperty(data.api.newgrounds.sessionId)
-  public var ngSessionId:SaveProperty<Null<String>>;
+  @:saveProperty(data.leaderboardUsername, '')
+  public var leaderboardUsername:SaveProperty<String>;
 
   ///
   /// MODS
@@ -926,48 +918,6 @@ class Save implements ConsoleClass
   {
     trace(this.serializeJson());
   }
-
-  #if FEATURE_NEWGROUNDS
-  public static function saveToNewgrounds():Void
-  {
-    if (_instance == null) return;
-    trace('[SAVE] Saving Save Data to Newgrounds...');
-    funkin.api.newgrounds.NGSaveSlot.instance.save(_instance.data);
-  }
-
-  public static function loadFromNewgrounds(onFinish:Void->Void):Void
-  {
-    trace('[SAVE] Loading Save Data from Newgrounds...');
-
-    funkin.api.newgrounds.NGSaveSlot.instance.load((data:Dynamic) ->
-    {
-      FlxG.save.bind(Constants.SAVE_NAME + Constants.BASE_SAVE_SLOT, Constants.SAVE_PATH);
-
-      if (FlxG.save.status != EMPTY)
-      {
-        // best i can do in case the NG file is corrupted or something along those lines
-        var backupSlot:Int = Save.system.archiveBadSaveData(FlxG.save.data);
-        trace('[SAVE] Backed up current save data in case of emergency to $backupSlot!');
-      }
-
-      FlxG.save.erase();
-      FlxG.save.bind(Constants.SAVE_NAME + Constants.BASE_SAVE_SLOT, Constants.SAVE_PATH); // forces regeneration of the file as erase deletes it
-
-      var gameSave = SaveDataMigrator.migrate(data);
-      FlxG.save.mergeData(gameSave.data, true);
-      _instance = gameSave;
-      onFinish();
-    }, (error:io.newgrounds.Call.CallError) ->
-      {
-        var errorMsg:String = io.newgrounds.Call.CallErrorTools.toString(error);
-
-        var msg = 'There was an error loading your save data from Newgrounds.';
-        msg += '\n${errorMsg}';
-        msg += '\nAre you sure you are connected to the internet?';
-        funkin.util.WindowUtil.showError("Newgrounds Save Slot Failure", msg);
-      });
-  }
-  #end
 }
 
 /**
@@ -984,8 +934,6 @@ typedef RawSaveData =
    * A semantic versioning string for the save data format.
    */
   var version:Version;
-
-  var api:SaveApiData;
 
   /**
    * The user's saved scores.
@@ -1012,6 +960,12 @@ typedef RawSaveData =
    */
   var favoriteSongs:Array<String>;
 
+  /**
+   * The username the user chose for leaderboard submissions.
+   * Empty string means the user has not picked one yet.
+   */
+  var leaderboardUsername:String;
+
   var mods:SaveDataMods;
 
   /**
@@ -1024,16 +978,6 @@ typedef RawSaveData =
    */
   var optionsStageEditor:SaveDataStageEditorOptions;
 };
-
-typedef SaveApiData =
-{
-  var newgrounds:SaveApiNewgroundsData;
-}
-
-typedef SaveApiNewgroundsData =
-{
-  var sessionId:Null<String>;
-}
 
 typedef SaveDataUnlocks =
 {

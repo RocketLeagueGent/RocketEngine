@@ -136,14 +136,9 @@ class DiscordClient
     // presence.startTimestamp = time - 10;
 
     final button1:DiscordButton = new DiscordButton();
-    button1.label = 'Play on Web';
-    button1.url = Constants.URL_NEWGROUNDS;
+    button1.label = 'Download';
+    button1.url = Constants.URL_ITCH;
     presence.buttons[0] = button1;
-
-    final button2:DiscordButton = new DiscordButton();
-    button2.label = 'Download';
-    button2.url = Constants.URL_ITCH;
-    presence.buttons[1] = button2;
 
     Discord.UpdatePresence(cpp.RawConstPointer.addressOf(presence));
   }

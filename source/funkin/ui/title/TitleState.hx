@@ -16,9 +16,6 @@ import funkin.audio.FunkinSound;
 import funkin.ui.AtlasText;
 import openfl.Assets;
 import funkin.ui.mainmenu.MainMenuState;
-#if FEATURE_NEWGROUNDS
-import funkin.api.newgrounds.Medals;
-#end
 #if mobile
 import funkin.util.TouchUtil;
 import funkin.util.SwipeUtil;
@@ -34,7 +31,6 @@ class TitleState extends MusicBeatState
   var blackScreen:FunkinSprite;
   var credGroup:FlxGroup;
   var textGroup:FlxGroup;
-  var ngSpr:FunkinSprite;
   var curWacky:Array<String> = [];
   var lastBeat:Int = 0;
   var swagShader:ColorSwap;
@@ -149,36 +145,11 @@ class TitleState extends MusicBeatState
 
     blackScreen = bg.clone();
 
-    ngSpr = new FunkinSprite(0, FlxG.height * 0.52);
-
-    if (FlxG.random.bool(1))
-    {
-      ngSpr.loadGraphic(Paths.image('newgrounds_logo_classic'));
-    }
-    else if (FlxG.random.bool(30))
-    {
-      ngSpr.loadGraphic(Paths.image('newgrounds_logo_animated'), true, 600);
-      ngSpr.animation.add('idle', [0, 1], 4);
-      ngSpr.animation.play('idle');
-      ngSpr.setGraphicSize(Std.int(ngSpr.width * 0.55));
-      ngSpr.y += 25;
-    }
-    else
-    {
-      ngSpr.loadGraphic(Paths.image('newgrounds_logo'));
-      ngSpr.setGraphicSize(Std.int(ngSpr.width * 0.8));
-    }
-
-    ngSpr.visible = false;
     if (credGroup != null)
     {
       credGroup.add(blackScreen);
-      credGroup.add(ngSpr);
       credGroup.add(textGroup);
     }
-
-    ngSpr.updateHitbox();
-    ngSpr.screenCenter(X);
 
     FlxG.mouse.visible = false;
 
@@ -290,12 +261,6 @@ class TitleState extends MusicBeatState
 
       #if FEATURE_HAPTICS
       HapticUtil.vibrate(0.1, 0.5, 0.5);
-      #end
-
-      #if FEATURE_NEWGROUNDS
-      // Award the "Start Game" medal.
-      Medals.award(Medal.StartGame);
-      funkin.api.newgrounds.Events.logStartGame();
       #end
 
       new FlxTimer().start(2, function(tmr:FlxTimer)
@@ -447,19 +412,17 @@ class TitleState extends MusicBeatState
           switch (i + 1)
           {
             case 1:
-              createCoolText(['The', 'Funkin Crew Inc']);
+              createCoolText(['The', 'Rocket Engine Team']);
             case 3:
               addMoreText('presents');
             case 4:
               deleteCoolText();
             case 5:
-              createCoolText(['In association', 'with']);
+              createCoolText(['Associated', 'with']);
             case 7:
-              addMoreText('newgrounds');
-              if (ngSpr != null) ngSpr.visible = true;
+              addMoreText('Pana');
             case 8:
               deleteCoolText();
-              if (ngSpr != null) ngSpr.visible = false;
             case 9:
               createCoolText([curWacky[0]]);
             case 11:
@@ -508,8 +471,6 @@ class TitleState extends MusicBeatState
   {
     if (!skippedIntro)
     {
-      remove(ngSpr);
-
       FlxG.camera.flash(FlxColor.WHITE, initialized ? 1 : 4);
 
       if (credGroup != null) remove(credGroup);

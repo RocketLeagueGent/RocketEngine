@@ -146,7 +146,6 @@ class StageBuilderState extends MusicBeatState
 
   function loadImage():Void
   {
-    // var img:FlxSprite = new FlxSprite().loadGraphic(Paths.image('newgrounds_logo'));
     // img.scrollFactor.set(0.5, 2);
     // sprGrp.add(img);
   }

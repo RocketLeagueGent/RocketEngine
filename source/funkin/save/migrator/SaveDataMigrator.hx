@@ -75,8 +75,6 @@ class SaveDataMigrator
     result.volume.value = inputSaveData.volume;
     result.mute.value = inputSaveData.mute;
 
-    result.ngSessionId.value = inputSaveData.sessionId;
-
     // TODO: Port over the save data from the legacy save data format.
     migrateLegacyScores(result, inputSaveData);
 

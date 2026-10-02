@@ -192,13 +192,6 @@
       "url": "https://github.com/FunkinCrew/lime"
     },
     {
-      "name": "newgrounds",
-      "type": "git",
-      "dir": null,
-      "ref": "60162762e6ca65da011ffee7a6617f547ea5dff9",
-      "url": "https://github.com/FunkinCrew/Newgrounds"
-    },
-    {
       "name": "openfl",
       "type": "git",
       "ref": "74a51908a116d6df74be1083e219abb9fa057636",

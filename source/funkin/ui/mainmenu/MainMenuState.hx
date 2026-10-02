@@ -28,18 +28,16 @@ import funkin.ui.MenuList.MenuListItem;
 import funkin.ui.title.TitleState;
 import funkin.ui.story.StoryMenuState;
 import funkin.ui.Prompt;
+import funkin.save.Save;
+import funkin.ui.leaderboard.UsernamePromptState;
 import funkin.util.WindowUtil;
 import funkin.mobile.ui.FunkinButton;
 import funkin.util.MathUtil;
-import funkin.util.TouchUtil;
-import funkin.api.newgrounds.Referral;
-import funkin.ui.mainmenu.UpgradeSparkle;
+  import funkin.util.TouchUtil;
+  import funkin.ui.mainmenu.UpgradeSparkle;
 import flixel.group.FlxSpriteGroup.FlxTypedSpriteGroup;
 #if FEATURE_DISCORD_RPC
 import funkin.api.discord.DiscordClient;
-#end
-#if FEATURE_NEWGROUNDS
-import funkin.api.newgrounds.NewgroundsClient;
 #end
 #if mobile
 import funkin.mobile.input.ControlsHandler;
@@ -312,6 +310,41 @@ class MainMenuState extends MusicBeatState
 
     // This has to come AFTER!
     initLeftWatermarkText();
+
+    // First-launch prompt: ask for a leaderboard username once per session.
+    FlxTimer.wait(1.0, maybePromptForUsername);
+  }
+
+  /**
+   * On first launch (empty leaderboard username), ask the player to pick one.
+   * Retries briefly until the menu is fully interactive and no other substate is open.
+   */
+  function maybePromptForUsername():Void
+  {
+    if (UsernamePromptState.promptedThisSession) return;
+
+    if ((Save.instance.leaderboardUsername.value ?? '').trim().length > 0)
+    {
+      UsernamePromptState.promptedThisSession = true;
+      return;
+    }
+
+    // Wait until the entering transition (and any other substate) is done.
+    if (subState != null || !canInteract)
+    {
+      FlxTimer.wait(0.5, maybePromptForUsername);
+      return;
+    }
+
+    uiStateMachine.transition(Interacting);
+    persistentUpdate = false;
+
+    var prompt = new UsernamePromptState();
+    prompt.closeCallback = function()
+    {
+      // Our closeSubState() override transitions the UI state machine back to Idle.
+    };
+    openSubState(prompt);
   }
 
   function initLeftWatermarkText():Void
@@ -319,13 +352,6 @@ class MainMenuState extends MusicBeatState
     if (leftWatermarkText == null) return;
 
     leftWatermarkText.text = Constants.VERSION;
-
-    #if FEATURE_NEWGROUNDS
-    if (NewgroundsClient.instance.isLoggedIn())
-    {
-      leftWatermarkText.text += ' | Newgrounds: Logged in as ${NewgroundsClient.instance.user?.name}';
-    }
-    #end
   }
 
   function playMenuMusic():Void
@@ -409,7 +435,7 @@ class MainMenuState extends MusicBeatState
 
   function selectMerch()
   {
-    Referral.doMerchReferral();
+    WindowUtil.openURL(Constants.URL_MERCH_FALLBACK);
     uiStateMachine.transition(Idle);
   }
   #end

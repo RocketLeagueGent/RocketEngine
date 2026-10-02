@@ -67,7 +67,6 @@ class Constants
 
   /**
    * Link to buy merch for the game.
-   * This is usually fetched from the Newgrounds API but we use this as a fallback.
    */
   public static final URL_MERCH_FALLBACK:String = 'https://needlejuicerecords.com/en-ca/pages/friday-night-funkin';
 
@@ -77,14 +76,17 @@ class Constants
   public static final URL_ITCH:String = 'https://ninja-muffin24.itch.io/funkin';
 
   /**
-   * Link to play the game on Newgrounds.
-   */
-  public static final URL_NEWGROUNDS:String = 'https://www.newgrounds.com/portal/view/770371';
-
-  /**
    * Link to the game's page on Kickstarter.
    */
   public static final URL_KICKSTARTER:String = 'https://www.kickstarter.com/projects/funkin/friday-night-funkin-the-full-ass-game/';
+
+  /**
+   * Base URL of the leaderboard API (serverless/Vercel-compatible backend).
+   * When empty, the game runs in mock mode: scores are submitted to and
+   * read from an in-memory mock, and the leaderboard UI shows a "(MOCK)" badge.
+   * Example real value: 'https://your-app.vercel.app'
+   */
+  public static final LEADERBOARD_API_BASE:String = '';
 
   /**
    * REPOSITORY DATA

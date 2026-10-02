@@ -32,7 +32,7 @@ class Project extends HXProject
    * REMEMBER TO CHANGE THIS WHEN THE GAME UPDATES!
    * You only have to change it here, the rest of the game will query this value.
    */
-  static final VERSION:String = "0.0.1 ALPHA";
+  static final VERSION:String = "0.0.1";
 
   /**
    * The build's number and version code.
@@ -43,7 +43,7 @@ class Project extends HXProject
   /**
    * The game's name. Used as the default window title.
    */
-  static final TITLE:String = "Friday Night Funkin' Rocket Engine";
+  static final TITLE:String = "Friday Night Funkin' Rocket Engine (ALPHA)";
 
   /**
    * The game's name on mobile. Used as the title for the game on the home screen.
@@ -384,7 +384,7 @@ class Project extends HXProject
 
   /**
    * `-DFEATURE_MOBILE_WEBVIEW`
-   * If this feature flag is enabled, the game will be able to load WebViews, mainly needed for the Newgrounds impl.
+   * If this feature flag is enabled, the game will be able to load WebViews.
    */
   static final FEATURE_MOBILE_WEBVIEW:FeatureFlag = "FEATURE_MOBILE_WEBVIEW";
 
@@ -400,40 +400,6 @@ class Project extends HXProject
    * If disabled, the option will be hidden and the game will always be censored.
    */
   static final FEATURE_NAUGHTYNESS:FeatureFlag = "FEATURE_NAUGHTYNESS";
-
-  /**
-   * `-DFEATURE_NEWGROUNDS`
-   * If this flag is enabled, the game will enable the Newgrounds library.
-   * This is used to provide Medal and Leaderboard support.
-   */
-  static final FEATURE_NEWGROUNDS:FeatureFlag = "FEATURE_NEWGROUNDS";
-
-  /**
-   * `-DFEATURE_NEWGROUNDS_AUTOLOGIN`
-   * If this flag is enabled, the game will attempt to automatically login to Newgrounds on startup.
-   */
-  static final FEATURE_NEWGROUNDS_AUTOLOGIN:FeatureFlag = "FEATURE_NEWGROUNDS_AUTOLOGIN";
-
-  /**
-   * `-DFEATURE_NEWGROUNDS_DEBUG`
-   * If this flag is enabled, the game will enable Newgrounds.io's debug functions.
-   * This provides additional information in requests, as well as "faking" medal and leaderboard submissions.
-   */
-  static final FEATURE_NEWGROUNDS_DEBUG:FeatureFlag = "FEATURE_NEWGROUNDS_DEBUG";
-
-  /**
-   * `-DFEATURE_NEWGROUNDS_EVENTS`
-   * If this flag is enabled, the game will attempt to send events to Newgrounds when the user does stuff.
-   * This lets us see cool anonymized stats! It only works if the user is logged in.
-   */
-  static final FEATURE_NEWGROUNDS_EVENTS:FeatureFlag = "FEATURE_NEWGROUNDS_EVENTS";
-
-  /**
-   * `-DFEATURE_NEWGROUNDS_TESTING_MEDALS`
-   * If this flag is enabled, use the medal IDs from the debug test bench.
-   * If disabled, use the actual medal IDs from the release project on Newgrounds.
-   */
-  static final FEATURE_NEWGROUNDS_TESTING_MEDALS:FeatureFlag = "FEATURE_NEWGROUNDS_TESTING_MEDALS";
 
   /**
    * `-DFEATURE_OPEN_URL`
@@ -882,13 +848,6 @@ class Project extends HXProject
 
     FEATURE_LOST_FOCUS_VOLUME.apply(this, isDesktop());
 
-    // Newgrounds features
-    FEATURE_NEWGROUNDS.apply(this, true);
-    FEATURE_NEWGROUNDS_DEBUG.apply(this, false);
-    FEATURE_NEWGROUNDS_TESTING_MEDALS.apply(this, FEATURE_NEWGROUNDS.isEnabled(this) && FEATURE_DEBUG_FUNCTIONS.isEnabled(this));
-    FEATURE_NEWGROUNDS_AUTOLOGIN.apply(this, FEATURE_NEWGROUNDS.isEnabled(this) && isWeb());
-    FEATURE_NEWGROUNDS_EVENTS.apply(this, FEATURE_NEWGROUNDS.isEnabled(this));
-
     // Should be true except on web and mobile builds.
     // Debug editors aren't built to work on web or mobile right now.
     FEATURE_DEBUG_MENU.apply(this, !(isWeb() || isMobile()));
@@ -921,7 +880,7 @@ class Project extends HXProject
     FEATURE_MOBILE_ADVERTISEMENTS.apply(this, (isMobile() && isRelease()) && envConfig != null);
     FEATURE_MOBILE_IAP.apply(this, (isMobile() && isRelease()) && envConfig != null);
     FEATURE_MOBILE_IAR.apply(this, isMobile() && isRelease());
-    FEATURE_MOBILE_WEBVIEW.apply(this, isMobile() && FEATURE_NEWGROUNDS.isEnabled(this));
+    FEATURE_MOBILE_WEBVIEW.apply(this, false);
     FEATURE_MOBILE_AGESIGNALS.apply(this, isMobile() && isRelease());
 
     // The coveted ghost tapping feature.
@@ -1309,11 +1268,6 @@ class Project extends HXProject
     if (FEATURE_DISCORD_RPC.isEnabled(this))
     {
       addHaxelib('hxdiscord_rpc'); // Discord API
-    }
-
-    if (FEATURE_NEWGROUNDS.isEnabled(this))
-    {
-      addHaxelib('newgrounds'); // Newgrounds API
     }
 
     if (FEATURE_FUNKVIS.isEnabled(this))

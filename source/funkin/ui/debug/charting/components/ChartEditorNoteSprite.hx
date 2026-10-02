@@ -105,7 +105,7 @@ class ChartEditorNoteSprite extends FlxSprite
       addNoteStyleAnimations(fetchNoteStyle(entry));
     }
 
-    kindIndicator.setFormat("VCR OSD Mono", 24, FlxColor.YELLOW, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+    kindIndicator.setFormat("PhantomMuff 1.5 Plus", 24, FlxColor.YELLOW, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
   }
 
   static var noteFrameCollection:Null<FlxFramesCollection> = null;

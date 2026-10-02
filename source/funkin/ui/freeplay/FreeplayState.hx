@@ -531,7 +531,7 @@ class FreeplayState extends MusicBeatSubState
     }
 
     var topLeftCornerText:FlxText = new FlxText(Math.max(FullScreenScaleMode.gameNotchSize.x, 8), 8, 0, 'FREEPLAY', 48);
-    topLeftCornerText.font = 'VCR OSD Mono';
+    topLeftCornerText.font = 'PhantomMuff 1.5 Plus';
     topLeftCornerText.visible = false;
 
     var freeplayTxtBg:FlxSprite = new FlxSprite().makeGraphic(Math.round(topLeftCornerText.width + 16), Math.round(topLeftCornerText.height + 16),
@@ -540,10 +540,10 @@ class FreeplayState extends MusicBeatSubState
     freeplayTxtBg.visible = false;
 
     freeplayArrow = new FlxText(Math.max(FullScreenScaleMode.gameNotchSize.x, 8), 8, 0, '<---', 48);
-    freeplayArrow.font = 'VCR OSD Mono';
+    freeplayArrow.font = 'PhantomMuff 1.5 Plus';
     freeplayArrow.visible = false;
 
-    ostName.font = 'VCR OSD Mono';
+    ostName.font = 'PhantomMuff 1.5 Plus';
     ostName.alignment = RIGHT;
     ostName.visible = false;
     ostName.shader = new StrokeShader(0xFFFFFFFF, 2, 2);

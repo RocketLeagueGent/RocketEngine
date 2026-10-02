@@ -39,6 +39,12 @@ class UsernamePromptState extends flixel.FlxSubState
    */
   var buffer:String = '';
 
+  /**
+   * Set once close() is called, so key events landing between close and
+   * destroy don't touch a dead UI.
+   */
+  var closing:Bool = false;
+
   public function new()
   {
     super(0xCC000000);
@@ -55,7 +61,7 @@ class UsernamePromptState extends flixel.FlxSubState
     titleText.screenCenter(X);
     add(titleText);
 
-    inputBg = new FlxText(0, 220, FlxG.width, '[' + ' '.repeat(MAX_LENGTH) + ']');
+    inputBg = new FlxText(0, 220, FlxG.width, '[' + ''.lpad(' ', MAX_LENGTH) + ']');
     inputBg.setFormat(Paths.font('vcr.ttf'), 40, 0xFF555555, CENTER);
     inputBg.screenCenter(X);
     add(inputBg);
@@ -84,7 +90,7 @@ class UsernamePromptState extends flixel.FlxSubState
 
   function onKeyDown(e:KeyboardEvent):Void
   {
-    if (disposed) return;
+    if (closing) return;
 
     switch (e.keyCode)
     {
@@ -160,11 +166,11 @@ class UsernamePromptState extends flixel.FlxSubState
 
   override function close():Void
   {
-    // Restore the parent's update state before closing.
-    if (_parentState != null)
-    {
-      _parentState.persistentUpdate = prevPersistentUpdate;
-    }
+    // Counts as seen for this session whether confirmed or cancelled.
+    // (No parent persistentUpdate restore needed: flixel resumes parent
+    // updates as soon as subState becomes null.)
+    closing = true;
+    promptedThisSession = true;
     super.close();
   }
 }

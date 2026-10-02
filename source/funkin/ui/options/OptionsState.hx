@@ -15,6 +15,7 @@ import flixel.util.FlxSignal;
 import funkin.audio.FunkinSound;
 import funkin.ui.mainmenu.MainMenuState;
 import funkin.ui.MusicBeatState;
+import funkin.ui.leaderboard.UsernamePromptState;
 import funkin.graphics.shaders.HSVShader;
 import funkin.input.Controls;
 #if mobile
@@ -215,6 +216,20 @@ class OptionsMenu extends Page<OptionsMenuPageName>
       funkin.external.android.DataFolderUtil.openDataFolder();
     });
     #end
+
+    createItem('CHANGE USERNAME', function()
+    {
+      // Pause the options menu behind the prompt (OptionsState runs with
+      // persistentUpdate = true, so the TextMenuList would otherwise keep
+      // consuming UP/DOWN/ENTER while typing).
+      FlxG.state.persistentUpdate = false;
+      var prompt = new UsernamePromptState();
+      prompt.closeCallback = function()
+      {
+        FlxG.state.persistentUpdate = true;
+      };
+      FlxG.state.openSubState(prompt);
+    });
 
     // Create an object for the camera to track.
     camFocusPoint = new FlxObject(0, 0, 140, 70);

@@ -43,6 +43,7 @@ import funkin.save.Save.SaveScoreData;
 import funkin.ui.AtlasText;
 import funkin.ui.FullScreenScaleMode;
 import funkin.ui.MusicBeatSubState;
+import funkin.ui.leaderboard.LeaderboardState;
 import funkin.ui.freeplay.backcards.*;
 import funkin.ui.freeplay.components.DifficultySprite;
 import funkin.ui.freeplay.charselect.PlayableCharacter;
@@ -1790,6 +1791,24 @@ class FreeplayState extends MusicBeatSubState
     if (controls.ACCEPT_P && uiStateMachine.canInteract())
     {
       currentCapsule.onConfirm();
+    }
+
+    // Open the leaderboard for the currently selected song.
+    if (FlxG.keys.justPressed.L && subState == null)
+    {
+      final songData = currentCapsule?.freeplayData;
+      if (songData != null && songData.data != null)
+      {
+        final prevPersistent:Bool = persistentUpdate;
+        persistentUpdate = false;
+
+        final board:LeaderboardState = new LeaderboardState(songData.data.id, currentDifficulty, currentVariation);
+        board.closeCallback = function()
+        {
+          persistentUpdate = prevPersistent;
+        };
+        openSubState(board);
+      }
     }
   }
 

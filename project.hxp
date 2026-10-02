@@ -161,13 +161,14 @@ class Project extends HXProject
 
   /**
    * Asset path globs to exclude on platforms with `CENSOR_EXPLETIVES` enabled.
+   * NOTE: stress cutscenes ship as .mkv (verified against assets/videos/videos).
    */
-  static final EXCLUDE_ASSETS_CENSORED:Array<String> = ["stressCutscene.mp4", "stressPicoCutscene.mp4", "darnellCutscene.mp4"];
+  static final EXCLUDE_ASSETS_CENSORED:Array<String> = ["stressCutscene.mkv", "stressPicoCutscene.mkv", "darnellCutscene.mp4"];
 
   /**
    * Asset path globs to exclude on platforms with `CENSOR_EXPLETIVES` disabled.
    */
-  static final EXCLUDE_ASSETS_UNCENSORED:Array<String> = ["stressCutscene-censored.mp4", "stressPicoCutscene-censored.mp4", "darnellCutscene-censored.mp4"];
+  static final EXCLUDE_ASSETS_UNCENSORED:Array<String> = ["stressCutscene-censored.mkv", "stressPicoCutscene-censored.mkv", "darnellCutscene-censored.mp4"];
 
   //
   // ASSET EMBEDDING

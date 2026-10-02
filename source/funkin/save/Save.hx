@@ -108,6 +108,9 @@ class Save implements ConsoleClass
       },
       favoriteSongs: [],
       leaderboardUsername: '',
+      leaderboardUuid: null,
+      awardsUnlocked: [],
+      awardsProgress: [],
       options: {
         // Reasonable defaults.
         framerate: #if mobile refreshRate #else 60 #end,
@@ -252,6 +255,30 @@ class Save implements ConsoleClass
    */
   @:saveProperty(data.leaderboardUsername, '')
   public var leaderboardUsername:SaveProperty<String>;
+
+  /**
+   * Unique numeric ID for this account on the leaderboard backend.
+   * Assigned by the server on first submission (0 = first account).
+   * Null until the backend has assigned one (or mock mode assigns one).
+   */
+  @:saveProperty(data.leaderboardUuid)
+  public var leaderboardUuid:SaveProperty<Null<Int>>;
+
+  ///
+  /// AWARDS
+  ///
+  /**
+   * The names of every award the user has unlocked.
+   */
+  @:saveProperty(data.awardsUnlocked, [])
+  public var awardsUnlocked:SaveProperty<Array<String>>;
+
+  /**
+   * Progress values for awards that track a score (e.g. "run over 50 henchmen").
+   * Stored as a list of `{name, value}` records because json2object can't serialize Maps.
+   */
+  @:saveProperty(data.awardsProgress, [])
+  public var awardsProgress:SaveProperty<Array<SaveDataAwardProgress>>;
 
   ///
   /// MODS
@@ -966,6 +993,22 @@ typedef RawSaveData =
    */
   var leaderboardUsername:String;
 
+  /**
+   * Unique numeric ID for this account on the leaderboard backend.
+   * Null until the backend assigns one.
+   */
+  var leaderboardUuid:Null<Int>;
+
+  /**
+   * The names of every award the user has unlocked.
+   */
+  var awardsUnlocked:Array<String>;
+
+  /**
+   * Progress values for awards that track a score.
+   */
+  var awardsProgress:Array<SaveDataAwardProgress>;
+
   var mods:SaveDataMods;
 
   /**
@@ -978,6 +1021,19 @@ typedef RawSaveData =
    */
   var optionsStageEditor:SaveDataStageEditorOptions;
 };
+
+typedef SaveDataAwardProgress =
+{
+  /**
+   * The award's internal name (matches the icon filename).
+   */
+  var name:String;
+
+  /**
+   * The current progress value toward this award's goal.
+   */
+  var value:Float;
+}
 
 typedef SaveDataUnlocks =
 {

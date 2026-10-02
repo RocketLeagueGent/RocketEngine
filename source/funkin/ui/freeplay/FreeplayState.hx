@@ -1803,6 +1803,10 @@ class FreeplayState extends MusicBeatSubState
         persistentUpdate = false;
 
         final board:LeaderboardState = new LeaderboardState(songData.data.id, currentDifficulty, currentVariation);
+        // All freeplay UI lives on funnyCam, which composites AFTER the default
+        // camera. Without this the board draws on the default camera and ends up
+        // hidden behind the full-screen backing image.
+        board.cameras = [funnyCam];
         board.closeCallback = function()
         {
           persistentUpdate = prevPersistent;
@@ -3469,9 +3473,15 @@ class FreeplaySongData
 
   function get_fullSongName():String
   {
+    var diffId:String = FreeplayState.rememberedDifficulty;
+
+    // Erect/Nightmare difficulty metadata carries suffixed display names
+    // ("Bopeebo Erect"); always show the base song name instead.
+    if (diffId == 'erect' || diffId == 'nightmare') return data.songName;
+
     var variations:Array<String> = data.getVariationsByCharacterId(FreeplayState.rememberedCharacterId);
 
-    return data.getDifficulty(FreeplayState.rememberedDifficulty, null, variations)?.songName ?? data.songName;
+    return data.getDifficulty(diffId, null, variations)?.songName ?? data.songName;
   }
 
   function get_songStartingBpm():Float

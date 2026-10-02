@@ -209,6 +209,17 @@ class MainMenuState extends MusicBeatState
       });
     }
 
+    // Awards (ported from Psych Engine's main menu).
+    createMenuItem('awards', 'mainmenu/awards', function()
+    {
+      startExitState(() -> new funkin.ui.awards.AwardsMenuState());
+    });
+    // The trophy icon is a tall square frame (188x189); scale it down to roughly
+    // match the height of the other menu items so 6 items fit without overlapping.
+    var awardsItem = menuItems.members[menuItems.length - 1];
+    awardsItem.scale.set(0.65, 0.65);
+    awardsItem.changeAnim('idle'); // re-derives origin/offset for the new scale
+
     if (#if mobile ControlsHandler.usingExternalInputDevice #else true #end)
     {
       createMenuItem('options', 'mainmenu/options', function()
@@ -223,7 +234,12 @@ class MainMenuState extends MusicBeatState
     });
 
     // Reset position of menu items.
-    final spacing:Float = 160;
+    // Up to 5 items fit at the default 160px spacing (640px span on a 720px screen).
+    // With 6 items that would overflow, so shrink the spacing just enough to keep the
+    // first and last items at their usual positions (y=40 / y=680 on a 720px screen).
+    final spacing:Float = (160.0 * (menuItems.length - 1) <= FlxG.height - 80)
+      ? 160.0
+      : (FlxG.height - 80) / (menuItems.length - 1);
     final top:Float = (FlxG.height - (spacing * (menuItems.length - 1))) / 2;
 
     for (index => menuItem in menuItems)
@@ -318,9 +334,16 @@ class MainMenuState extends MusicBeatState
   /**
    * On first launch (empty leaderboard username), ask the player to pick one.
    * Retries briefly until the menu is fully interactive and no other substate is open.
+   * Web builds never prompt: they submit as UUID-backed guests.
    */
   function maybePromptForUsername():Void
   {
+    #if html5
+    // Guest-only on the web: no custom usernames.
+    UsernamePromptState.promptedThisSession = true;
+    return;
+    #end
+
     if (UsernamePromptState.promptedThisSession) return;
 
     if ((Save.instance.leaderboardUsername.value ?? '').trim().length > 0)

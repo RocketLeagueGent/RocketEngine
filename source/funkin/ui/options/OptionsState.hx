@@ -217,6 +217,7 @@ class OptionsMenu extends Page<OptionsMenuPageName>
     });
     #end
 
+    #if !html5
     createItem('CHANGE USERNAME', function()
     {
       // Pause the options menu behind the prompt (OptionsState runs with
@@ -230,6 +231,7 @@ class OptionsMenu extends Page<OptionsMenuPageName>
       };
       FlxG.state.openSubState(prompt);
     });
+    #end
 
     // Create an object for the camera to track.
     camFocusPoint = new FlxObject(0, 0, 140, 70);

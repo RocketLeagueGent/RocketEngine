@@ -3,6 +3,7 @@ package funkin.api.leaderboard;
 import haxe.Http;
 import haxe.Json;
 import funkin.save.Save.SaveScoreTallyData;
+import funkin.save.Save;
 import funkin.modding.PolymodHandler;
 
 /**
@@ -28,6 +29,41 @@ class LeaderboardClient
   public static function isEnabled():Bool
   {
     return Constants.LEADERBOARD_API_BASE != '';
+  }
+
+  /**
+   * The username to submit scores under on this platform.
+   *
+   * - HTML5 (web): guest-only. Custom usernames are never used; guests are
+   *   identified by their backend-assigned UUID instead.
+   * - Desktop: the username the player picked (persisted in the save file),
+   *   or '' if they never picked one.
+   */
+  public static function currentUsername():String
+  {
+    #if html5
+    return guestName();
+    #else
+    return Save.instance.leaderboardUsername.value ?? '';
+    #end
+  }
+
+  /**
+   * Display name for a guest (web) identity: `Guest` until the backend
+   * assigns a UUID, then `Guest#<uuid>`.
+   */
+  public static function guestName():String
+  {
+    var uuid:Null<Int> = Save.instance.leaderboardUuid.value;
+    return uuid == null ? 'Guest' : 'Guest#$uuid';
+  }
+
+  /**
+   * The backend-assigned account UUID for this save, or null if none yet.
+   */
+  public static function currentUuid():Null<Int>
+  {
+    return Save.instance.leaderboardUuid.value;
   }
 
   /**
@@ -61,12 +97,15 @@ class LeaderboardClient
    */
   public static function submitScore(payload:LeaderboardSubmitPayload):Void
   {
-    if (payload == null || payload.username == '') return;
+    if (payload == null) return;
+
+    // Never submit an empty identity.
+    if (payload.username == '' && payload.uuid == null) return;
 
     if (!isEnabled())
     {
       mockSubmit(payload);
-      trace('[Leaderboard] MOCK submit: ${payload.username} ${payload.songId} score=${payload.score} tier=${payload.comboTier}');
+      trace('[Leaderboard] MOCK submit: ${payload.username} uuid=${payload.uuid} ${payload.songId} score=${payload.score} tier=${payload.comboTier}');
       return;
     }
 
@@ -76,7 +115,22 @@ class LeaderboardClient
     var http:Http = new Http(url);
     http.setHeader('Content-Type', 'application/json');
     http.setPostData(body);
-    http.onData = function(_) {
+    http.onData = function(raw:String) {
+      // The backend may respond with the account identity, e.g.
+      // {"ok":true,"uuid":0}. Persist it so future submissions are
+      // linked to the same account.
+      try
+      {
+        var parsed:Dynamic = Json.parse(raw);
+        if (parsed != null && parsed.uuid != null && Std.isOfType(parsed.uuid, Int))
+        {
+          Save.instance.leaderboardUuid.value = cast parsed.uuid;
+        }
+      }
+      catch (e:Dynamic)
+      {
+        // Non-JSON responses are fine; just ignore.
+      }
       trace('[Leaderboard] Submit OK: ${payload.songId} (${payload.score})');
     };
     http.onError = function(msg:String) {
@@ -155,6 +209,16 @@ class LeaderboardClient
 
   static function mockSubmit(payload:LeaderboardSubmitPayload):Void
   {
+    // Assign an account UUID on first submission, mirroring the real
+    // backend: first account gets 0, second gets 1, and so on.
+    if (payload.uuid == null)
+    {
+      payload.uuid = mockNextUuid();
+      Save.instance.leaderboardUuid.value = payload.uuid;
+      // Guests get their display name from the UUID.
+      if (payload.username.startsWith('Guest')) payload.username = guestName();
+    }
+
     mockEntries.push({
       username: payload.username,
       score: payload.score,
@@ -165,6 +229,32 @@ class LeaderboardClient
     mockEntries.sort(function(a, b) return b.score - a.score);
     // Keep the mock list bounded.
     if (mockEntries.length > 50) mockEntries = mockEntries.slice(0, 50);
+  }
+
+  /**
+   * Next UUID to hand out in mock mode. Counts existing mock submissions
+   * that already carry an account so numbering stays stable in-session,
+   * offset by any UUID the save file already owns.
+   */
+  static function mockNextUuid():Int
+  {
+    var saved:Null<Int> = Save.instance.leaderboardUuid.value;
+    if (saved != null) return saved;
+
+    // First unclaimed id: 0, then 1, ... (Rocket = 0, Pana = 1).
+    var used:Map<Int, Bool> = new Map<Int, Bool>();
+    for (entry in mockEntries)
+    {
+      // Mock entries don't carry uuids; track via distinct guest names.
+      if (entry.username.startsWith('Guest#'))
+      {
+        var id:Null<Int> = Std.parseInt(entry.username.split('#')[1]);
+        if (id != null) used[id] = true;
+      }
+    }
+    var next:Int = 0;
+    while (used[next]) next++;
+    return next;
   }
 
   static function mockFetch(songId:String, difficultyId:String, variationId:String):Array<LeaderboardEntry>
@@ -181,6 +271,14 @@ class LeaderboardClient
 typedef LeaderboardSubmitPayload =
 {
   var username:String;
+
+  /**
+   * Backend-assigned account UUID. Null on the very first submission;
+   * the backend replies with the assigned id (0 = first account, 1 = second, ...)
+   * which the client persists to its save file.
+   */
+  var uuid:Null<Int>;
+
   var songId:String;
   var difficultyId:String;
   var variationId:String;

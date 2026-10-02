@@ -2579,6 +2579,9 @@ class PlayState extends MusicBeatSubState
 
     // TODO: Maybe tween in the camera after any cutscenes.
     camHUD.visible = true;
+
+    // Psych-style award: play on a Friday... Night. (0 = Sunday, so Friday = 5.)
+    if (Date.now().getDay() == 5) funkin.awards.Awards.unlock('friday_night_play');
   }
 
   /**
@@ -3491,11 +3494,13 @@ class PlayState extends MusicBeatSubState
         Save.instance.applySongRank(currentSong.id, suffixedDifficulty, data);
 
         // Submit the score to the leaderboard (mock mode unless Constants.LEADERBOARD_API_BASE is configured).
-        var username:String = Save.instance.leaderboardUsername.value ?? '';
-        if (username.length > 0)
+        // Web builds submit as guest (UUID-backed); desktop uses the picked username.
+        var username:String = LeaderboardClient.currentUsername();
+        if (username.length > 0 || LeaderboardClient.currentUuid() != null)
         {
           LeaderboardClient.submitScore({
             username: username,
+            uuid: LeaderboardClient.currentUuid(),
             songId: currentSong.id,
             difficultyId: currentDifficulty,
             variationId: currentVariation,
@@ -3505,6 +3510,13 @@ class PlayState extends MusicBeatSubState
             comboTier: LeaderboardClient.calculateComboTier(data.tallies),
           });
         }
+
+        // Psych-style awards based on the song rating.
+        var songAccuracy:Float = Scoring.tallyCompletion(data.tallies) * 100;
+        if (songAccuracy >= 100)
+          funkin.awards.Awards.unlock('ur_good');
+        else if (songAccuracy < 20)
+          funkin.awards.Awards.unlock('ur_bad');
       }
     }
 
@@ -3548,6 +3560,14 @@ class PlayState extends MusicBeatSubState
             {
               Save.instance.setLevelScore(PlayStatePlaylist.campaignId, PlayStatePlaylist.campaignDifficulty, data);
               isNewHighscore = true;
+            }
+
+            // Psych-style award: beat the whole week on Hard with no misses.
+            if (!isPracticeMode && !isBotPlayMode
+              && PlayStatePlaylist.campaignDifficulty == 'hard'
+              && Highscore.talliesLevel.missed == 0)
+            {
+              funkin.awards.Awards.unlock('${PlayStatePlaylist.campaignId}_nomiss');
             }
           }
         }

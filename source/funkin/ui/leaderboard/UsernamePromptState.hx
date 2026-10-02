@@ -153,6 +153,9 @@ class UsernamePromptState extends flixel.FlxSubState
     if (trimmed.length > 0)
     {
       Save.instance.leaderboardUsername.value = trimmed;
+      // SaveProperty auto-flushes, but flush explicitly as well so the name
+      // survives even if the auto-flush path is ever disabled.
+      Save.instance.flush();
     }
     promptedThisSession = true;
     close();

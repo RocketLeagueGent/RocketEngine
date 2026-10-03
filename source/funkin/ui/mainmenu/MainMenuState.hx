@@ -8,34 +8,29 @@ import flixel.FlxObject;
 import flixel.FlxSubState;
 import flixel.FlxSprite;
 import flixel.effects.FlxFlicker;
+import flixel.math.FlxMath;
 import flixel.math.FlxPoint;
 import flixel.util.typeLimit.NextState;
 import flixel.util.FlxColor;
 import flixel.tweens.FlxEase;
 import funkin.graphics.FunkinCamera;
 import funkin.audio.FunkinSound;
-import funkin.util.SwipeUtil;
 import funkin.util.InputUtil;
 import flixel.tweens.FlxTween;
 import funkin.ui.MusicBeatState;
 import funkin.ui.UIStateMachine;
 import funkin.ui.UIStateMachine.UIState;
+import flixel.text.FlxText;
+import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.util.FlxTimer;
-import funkin.ui.AtlasMenuList.AtlasMenuItem;
 import funkin.ui.freeplay.FreeplayState;
-import funkin.ui.MenuList.MenuTypedList;
-import funkin.ui.MenuList.MenuListItem;
 import funkin.ui.title.TitleState;
 import funkin.ui.story.StoryMenuState;
 import funkin.ui.Prompt;
 import funkin.save.Save;
 import funkin.ui.leaderboard.UsernamePromptState;
 import funkin.util.WindowUtil;
-import funkin.mobile.ui.FunkinButton;
 import funkin.util.MathUtil;
-  import funkin.util.TouchUtil;
-  import funkin.ui.mainmenu.UpgradeSparkle;
-import flixel.group.FlxSpriteGroup.FlxTypedSpriteGroup;
 #if FEATURE_DISCORD_RPC
 import funkin.api.discord.DiscordClient;
 #end
@@ -44,30 +39,75 @@ import funkin.mobile.input.ControlsHandler;
 import funkin.mobile.util.InAppPurchasesUtil;
 #end
 
+/**
+ * Main menu, ported from Psych Engine 1.0.4's `states/MainMenuState.hx`.
+ *
+ * Psych's three-column layout:
+ * - CENTER: story_mode, freeplay, credits (Psych also has `mods`; our mods
+ *   browser lives inside Options as the ModMenu page instead)
+ * - LEFT: achievements (wired to our AwardsMenuState)
+ * - RIGHT: options
+ *
+ * Psych's interaction model is preserved: idle/selected sparrow animations,
+ * camera parallax follow on the background, mouse hover with nearest-item
+ * detection, column switching with left/right, flicker-confirm on accept.
+ * Our engine's state machine, Freeplay substate flow, mobile buttons and
+ * username prompt are kept on top of it.
+ */
+enum MainMenuColumn
+{
+  LEFT;
+  CENTER;
+  RIGHT;
+}
+
 @:nullSafety
 class MainMenuState extends MusicBeatState
 {
-  var menuItems:Null<MenuTypedList<AtlasMenuItem>>;
-  var bg:Null<FlxSprite>;
+  public static var curSelected:Int = 0;
+  public static var curColumn:MainMenuColumn = CENTER;
+  var allowMouse:Bool = true; // Turn this off to block mouse movement in menus
+
+  var centerItems:FlxTypedGroup<FlxSprite> = new FlxTypedGroup<FlxSprite>();
+  var leftItem:Null<FlxSprite>;
+  var rightItem:Null<FlxSprite>;
+
+  // Centered/Text options (Psych's optionShit)
+  var optionShit:Array<String> = [
+    'story_mode',
+    'freeplay',
+    'credits'
+  ];
+
+  var leftOption:String = 'achievements';
+  var rightOption:String = 'options';
+
   var magenta:FlxSprite;
   var camFollow:FlxObject;
-  #if mobile
-  var gyroPan:Null<FlxPoint>;
-  #end
+
+  var bg:Null<FlxSprite>;
   var overrideMusic:Bool = false;
   var uiStateMachine:UIStateMachine = new UIStateMachine();
   var canInteract(get, never):Bool;
+
+  // Equivalent of Psych's `selectedSomethin`: blocks input while confirming.
+  var selectedSomethin:Bool = false;
+
+  var timeNotMoving:Float = 0;
+
+  #if mobile
+  var gyroPan:Null<FlxPoint>;
+  #end
+
+  static var rememberedSelectedIndex:Int = 0;
+
+  // This should never be false on non-mobile targets.
+  var hasUpgraded:Bool = false;
 
   function get_canInteract():Bool
   {
     return uiStateMachine.canInteract();
   }
-
-  static var rememberedSelectedIndex:Int = 0;
-
-  // this should never be false on non-mobile targets.
-  var hasUpgraded:Bool = false;
-  var upgradeSparkles:FlxTypedSpriteGroup<UpgradeSparkle>;
 
   public function new(_overrideMusic:Bool = false)
   {
@@ -77,8 +117,7 @@ class MainMenuState extends MusicBeatState
     // Start in Entering state during screen fade in
     uiStateMachine.transition(EnteringMainMenu);
 
-    upgradeSparkles = new FlxTypedSpriteGroup<UpgradeSparkle>();
-    magenta = new FlxSprite(Paths.image('menuBGMagenta'));
+    magenta = new FlxSprite(Paths.image('menuDesat'));
     camFollow = new FlxObject(0, 0, 1, 1);
 
     // TODO: enabling and disabling keys is a lil quirky,
@@ -113,188 +152,58 @@ class MainMenuState extends MusicBeatState
     persistentUpdate = true;
     persistentDraw = true;
 
-    bg = new FlxSprite(Paths.image('menuBG'));
-    bg.scrollFactor.x = #if !mobile 0 #else 0.17 #end; // we want a lil x scroll on mobile
-    bg.scrollFactor.y = 0.17;
-    bg.setGraphicSize(Std.int(FlxG.width * 1.2));
+    // --- Psych layout: background with vertical parallax ---
+    var yScroll:Float = 0.25;
+    bg = new FlxSprite(-80).loadGraphic(Paths.image('menuBG'));
+    bg.antialiasing = true;
+    bg.scrollFactor.set(0, yScroll);
+    bg.setGraphicSize(Std.int(bg.width * 1.175));
     bg.updateHitbox();
     bg.screenCenter();
     add(bg);
 
     add(camFollow);
 
-    magenta.scrollFactor.copyFrom(bg.scrollFactor);
-    magenta.setGraphicSize(Std.int(bg.width));
+    // Psych's desaturated overlay, tinted pink; flickered on confirm.
+    magenta.antialiasing = true;
+    magenta.scrollFactor.set(0, yScroll);
+    magenta.setGraphicSize(Std.int(magenta.width * 1.175));
     magenta.updateHitbox();
-    magenta.x = bg.x;
-    magenta.y = bg.y;
+    magenta.screenCenter();
     magenta.visible = false;
+    magenta.color = 0xFFfd719b;
+    add(magenta);
 
-    if (Preferences.flashingLights) add(magenta);
+    centerItems = new FlxTypedGroup<FlxSprite>();
+    add(centerItems);
 
-    menuItems = new MenuTypedList<AtlasMenuItem>();
-    add(menuItems);
+    // Restore the previously selected center item.
+    curSelected = FlxMath.wrap(rememberedSelectedIndex, 0, optionShit.length - 1);
+    curColumn = CENTER;
 
-    menuItems.onChange.add(onMenuItemChange);
-    menuItems.onAcceptPress.add(_ ->
+    for (num => option in optionShit)
     {
-      FlxFlicker.flicker(magenta, 1.1, 0.15, false, true);
-      uiStateMachine.transition(Interacting);
-    });
-
-    menuItems.enabled = true;
-
-    createMenuItem('storymode', 'mainmenu/storymode', () ->
-    {
-      FlxG.signals.preStateSwitch.addOnce(() ->
-      {
-        funkin.FunkinMemory.clearFreeplay();
-        funkin.FunkinMemory.purgeCache();
-      });
-      startExitState(() -> new StoryMenuState());
-    });
-
-    createMenuItem('freeplay', 'mainmenu/freeplay', function()
-    {
-      persistentDraw = true;
-      persistentUpdate = false;
-      rememberedSelectedIndex = menuItems?.selectedIndex ?? 0;
-      // Freeplay has its own custom transition
-      FlxTransitionableState.skipNextTransIn = true;
-      FlxTransitionableState.skipNextTransOut = true;
-
-      // Since CUTOUT_WIDTH is static it might retain some old inccrect values so we update it before loading freeplay
-      FreeplayState.CUTOUT_WIDTH = funkin.ui.FullScreenScaleMode.gameCutoutSize.x / 1.5;
-
-      #if FEATURE_DEBUG_FUNCTIONS
-      // Debug function: Hold SHIFT when selecting Freeplay to swap character without the char select menu
-      var targetCharacter:Null<String> = FlxG.keys.pressed.SHIFT ? (FreeplayState.rememberedCharacterId == "pico" ? "bf" : "pico") : FreeplayState.rememberedCharacterId;
-      #else
-      var targetCharacter:Null<String> = FreeplayState.rememberedCharacterId;
-      #end
-
-      if (!hasUpgraded)
-      {
-        for (i in 0...upgradeSparkles.length)
-        {
-          upgradeSparkles.members[i].cancelSparkle();
-        }
-      }
-
-      openSubState(new FreeplayState({
-        character: targetCharacter
-      }));
-    });
-
-    if (hasUpgraded)
-    {
-      #if FEATURE_OPEN_URL
-      // In order to prevent popup blockers from triggering,
-      // we need to open the link as an immediate result of a keypress event,
-      // so we can't wait for the flicker animation to complete.
-      var hasPopupBlocker:Bool = #if web true #else false #end;
-      createMenuItem('merch', 'mainmenu/merch', selectMerch, hasPopupBlocker);
-      #end
-    }
-    else
-    {
-      add(upgradeSparkles);
-
-      createMenuItem('upgrade', 'mainmenu/upgrade', function()
-      {
-        #if FEATURE_MOBILE_IAP
-        InAppPurchasesUtil.purchase(InAppPurchasesUtil.UPGRADE_PRODUCT_ID, FlxG.resetState);
-        uiStateMachine.transition(Idle);
-        #end
-      });
+      var item:FlxSprite = createMenuItem(option, 0, (num * 140) + 90);
+      item.y += (4 - optionShit.length) * 70; // Offsets for when you have anything other than 4 items
+      item.screenCenter(X);
     }
 
-    // Awards (ported from Psych Engine's main menu).
-    createMenuItem('awards', 'mainmenu/awards', function()
+    if (leftOption != null) leftItem = createMenuItem(leftOption, 60, 490);
+    if (rightOption != null)
     {
-      startExitState(() -> new funkin.ui.awards.AwardsMenuState());
-    });
-    // The trophy icon is a tall square frame (188x189); scale it down to roughly
-    // match the height of the other menu items so 6 items fit without overlapping.
-    var awardsItem = menuItems.members[menuItems.length - 1];
-    awardsItem.scale.set(0.65, 0.65);
-    awardsItem.changeAnim('idle'); // re-derives origin/offset for the new scale
-
-    if (#if mobile ControlsHandler.usingExternalInputDevice #else true #end)
-    {
-      createMenuItem('options', 'mainmenu/options', function()
-      {
-        startExitState(() -> new funkin.ui.options.OptionsState());
-      });
+      rightItem = createMenuItem(rightOption, FlxG.width - 60, 490);
+      rightItem.x -= rightItem.width;
     }
 
-    createMenuItem('credits', 'mainmenu/credits', function()
-    {
-      startExitState(() -> new funkin.ui.credits.CreditsState());
-    });
+    // Bottom-left version watermark, Psych style.
+    var engineVer:FlxText = new FlxText(12, FlxG.height - 44, 0, '${Constants.TITLE} ${Constants.VERSION}', 12);
+    engineVer.scrollFactor.set();
+    engineVer.setFormat(Paths.font('vcr.ttf'), 16, FlxColor.WHITE, FlxTextAlign.LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+    add(engineVer);
 
-    // Reset position of menu items.
-    // Up to 5 items fit at the default 160px spacing (640px span on a 720px screen).
-    // With 6 items that would overflow, so shrink the spacing just enough to keep the
-    // first and last items at their usual positions (y=40 / y=680 on a 720px screen).
-    final spacing:Float = (160.0 * (menuItems.length - 1) <= FlxG.height - 80)
-      ? 160.0
-      : (FlxG.height - 80) / (menuItems.length - 1);
-    final top:Float = (FlxG.height - (spacing * (menuItems.length - 1))) / 2;
+    changeItem();
 
-    for (index => menuItem in menuItems)
-    {
-      menuItem.x = FlxG.width / 2;
-      menuItem.y = top + spacing * index;
-      menuItem.scrollFactor.x = #if !mobile 0.0 #else 0.4 #end; // we want a lil scroll on mobile, for the cute gyro effect
-      // This one affects how much the menu items move when you scroll between them.
-      menuItem.scrollFactor.y = 0.4;
-
-      if (index == 1) camFollow.setPosition(menuItem.getGraphicMidpoint().x, menuItem.getGraphicMidpoint().y);
-    }
-
-    menuItems.selectItem(rememberedSelectedIndex);
-
-    if (!hasUpgraded)
-    {
-      // the upgrade item
-      var targetItem = menuItems.members[2];
-      for (_ in 0...8)
-      {
-        var sparkle:UpgradeSparkle = new UpgradeSparkle(targetItem.x - (targetItem.width / 2), targetItem.y - (targetItem.height / 2), targetItem.width,
-          targetItem.height, FlxG.random.bool(80));
-        upgradeSparkles.add(sparkle);
-
-        sparkle.scrollFactor.x = 0.0;
-        sparkle.scrollFactor.y = 0.4;
-      }
-
-      subStateClosed.add(_ ->
-      {
-        for (i in 0...upgradeSparkles.length)
-        {
-          upgradeSparkles.members[i].restartSparkle();
-        }
-      });
-    }
-
-    resetCamStuff();
-
-    // reset camera when debug menu is closed
-    subStateClosed.add(_ -> resetCamStuff(false));
-
-    subStateOpened.add((sub:FlxSubState) ->
-    {
-      if (Std.isOfType(sub, FreeplayState))
-      {
-        FlxTimer.wait(0.5, () ->
-        {
-          magenta.visible = false;
-        });
-      }
-    });
-
-    // FlxG.camera.setScrollBounds(bg.x, bg.x + bg.width, bg.y, bg.y + bg.height * 1.2);
+    FlxG.camera.follow(camFollow, null, 0.15);
 
     #if mobile
     gyroPan = new FlxPoint();
@@ -329,6 +238,25 @@ class MainMenuState extends MusicBeatState
 
     // First-launch prompt: ask for a leaderboard username once per session.
     FlxTimer.wait(1.0, maybePromptForUsername);
+  }
+
+  /**
+   * Build a Psych menu item from the `mainmenu/menu_<name>` sparrow atlas,
+   * with `'<name> idle'` / `'<name> selected'` animations.
+   */
+  function createMenuItem(name:String, x:Float, y:Float):FlxSprite
+  {
+    var menuItem:FlxSprite = new FlxSprite(x, y);
+    menuItem.frames = Paths.getSparrowAtlas('mainmenu/menu_$name');
+    menuItem.animation.addByPrefix('idle', '$name idle', 24, true);
+    menuItem.animation.addByPrefix('selected', '$name selected', 24, true);
+    menuItem.animation.play('idle');
+    menuItem.updateHitbox();
+
+    menuItem.antialiasing = true;
+    menuItem.scrollFactor.set();
+    centerItems.add(menuItem);
+    return menuItem;
   }
 
   /**
@@ -389,34 +317,9 @@ class MainMenuState extends MusicBeatState
 
   function resetCamStuff(snap:Bool = true):Void
   {
-    FlxG.camera.follow(camFollow, null, 0.06);
+    FlxG.camera.follow(camFollow, null, 0.15);
 
     if (snap) FlxG.camera.snapToTarget();
-  }
-
-  function createMenuItem(name:String, atlas:String, callback:Void->Void, fireInstantly:Bool = false):Void
-  {
-    if (menuItems == null) return;
-
-    var item:AtlasMenuItem = new AtlasMenuItem(name, Paths.getSparrowAtlas(atlas), callback);
-    item.fireInstantly = fireInstantly;
-    item.ID = menuItems.length;
-    item.scrollFactor.set();
-
-    // Set the offset of the item so the sprite is centered on the origin.
-    item.centered = true;
-    item.changeAnim('idle');
-    menuItems.addItem(name, item);
-  }
-
-  var buttonGrp:Array<FlxSprite> = [];
-
-  function createMenuButtion(name:String, atlas:String, callback:Void->Void):Void
-  {
-    var item:FunkinButton = new FunkinButton(Math.round(FlxG.width * 0.8), Math.round(FlxG.height * 0.7));
-    item.makeGraphic(250, 250, FlxColor.BLUE);
-    item.onDown.add(callback);
-    buttonGrp.push(item);
   }
 
   override function closeSubState():Void
@@ -428,6 +331,8 @@ class MainMenuState extends MusicBeatState
     if (!(subState is flixel.addons.transition.Transition))
     {
       uiStateMachine.transition(Idle);
+      // Re-enable Psych-style input handling now that we're back from a substate.
+      selectedSomethin = false;
 
       #if FEATURE_TOUCH_CONTROLS
       // we want to reset our backButton + optionsButton if we are returning to the main menu from a substate like freeplay
@@ -444,18 +349,7 @@ class MainMenuState extends MusicBeatState
     super.closeSubState();
   }
 
-  function onMenuItemChange(selected:MenuListItem)
-  {
-    if (#if mobile ControlsHandler.usingExternalInputDevice #else true #end) camFollow.setPosition(selected.getGraphicMidpoint().x,
-      selected.getGraphicMidpoint().y);
-  }
-
   #if FEATURE_OPEN_URL
-  function selectDonate()
-  {
-    WindowUtil.openURL(Constants.URL_ITCH);
-  }
-
   function selectMerch()
   {
     WindowUtil.openURL(Constants.URL_MERCH_FALLBACK);
@@ -470,28 +364,125 @@ class MainMenuState extends MusicBeatState
 
     prompt.closeCallback = function()
     {
-      // in our closeSubstate override, we set the uiStateMachine, so no need to set here
+      // in our closeSubState override, we set the uiStateMachine, so no need to set here
       if (onClose != null) onClose();
     }
 
     openSubState(prompt);
   }
 
+  /**
+   * Run the accept flow for the currently selected option: confirm sound,
+   * Psych's magenta flicker (when flashing lights are enabled), item flicker
+   * and fade-out of the remaining items, then fire the option's callback.
+   */
+  function acceptCurrentOption():Void
+  {
+    FunkinSound.playOnce(Paths.sound('confirmMenu'));
+    uiStateMachine.transition(Interacting);
+    selectedSomethin = true;
+    FlxG.mouse.visible = false;
+    rememberedSelectedIndex = curSelected;
+
+    if (Preferences.flashingLights)
+    {
+      FlxFlicker.flicker(magenta, 1.1, 0.15, false);
+    }
+
+    var item:Null<FlxSprite>;
+    var option:String;
+    switch (curColumn)
+    {
+      case CENTER:
+        option = optionShit[curSelected];
+        item = centerItems.members[curSelected];
+      case LEFT:
+        option = leftOption;
+        item = leftItem;
+      case RIGHT:
+        option = rightOption;
+        item = rightItem;
+    }
+
+    if (item == null)
+    {
+      selectedSomethin = false;
+      uiStateMachine.transition(Idle);
+      return;
+    }
+
+    FlxFlicker.flicker(item, 1, 0.06, false, false, function(flick:FlxFlicker)
+    {
+      switch (option)
+      {
+        case 'story_mode':
+          FlxG.signals.preStateSwitch.addOnce(() ->
+          {
+            funkin.FunkinMemory.clearFreeplay();
+            funkin.FunkinMemory.purgeCache();
+          });
+          startExitState(() -> new StoryMenuState());
+
+        case 'freeplay':
+          openFreeplay();
+
+        case 'achievements':
+          startExitState(() -> new funkin.ui.awards.AwardsMenuState());
+
+        case 'credits':
+          startExitState(() -> new funkin.ui.credits.CreditsState());
+
+        case 'options':
+          startExitState(() -> new funkin.ui.options.OptionsState());
+
+        default:
+          trace('Menu Item ${option} doesn\'t do anything');
+          selectedSomethin = false;
+          item.visible = true;
+          uiStateMachine.transition(Idle);
+      }
+    });
+
+    for (memb in centerItems)
+    {
+      if (memb == null || memb == item) continue;
+      FlxTween.tween(memb, {alpha: 0}, 0.4, {ease: FlxEase.quadOut});
+    }
+    if (leftItem != null && leftItem != item) FlxTween.tween(leftItem, {alpha: 0}, 0.4, {ease: FlxEase.quadOut});
+    if (rightItem != null && rightItem != item) FlxTween.tween(rightItem, {alpha: 0}, 0.4, {ease: FlxEase.quadOut});
+  }
+
+  /** Freeplay has its own custom flow: it opens as a substate with character select. */
+  function openFreeplay():Void
+  {
+    persistentDraw = true;
+    persistentUpdate = false;
+
+    // Freeplay has its own custom transition
+    FlxTransitionableState.skipNextTransIn = true;
+    FlxTransitionableState.skipNextTransOut = true;
+
+    // Since CUTOUT_WIDTH is static it might retain some old incorrect values so we update it before loading freeplay
+    FreeplayState.CUTOUT_WIDTH = funkin.ui.FullScreenScaleMode.gameCutoutSize.x / 1.5;
+
+    #if FEATURE_DEBUG_FUNCTIONS
+    // Debug function: Hold SHIFT when selecting Freeplay to swap character without the char select menu
+    var targetCharacter:Null<String> = FlxG.keys.pressed.SHIFT ? (FreeplayState.rememberedCharacterId == "pico" ? "bf" : "pico") : FreeplayState.rememberedCharacterId;
+    #else
+    var targetCharacter:Null<String> = FreeplayState.rememberedCharacterId;
+    #end
+
+    openSubState(new FreeplayState({
+      character: targetCharacter
+    }));
+  }
+
   function startExitState(state:NextState):Void
   {
-    if (menuItems == null) return;
-
     uiStateMachine.transition(Exiting); // Start fade out
-    rememberedSelectedIndex = menuItems.selectedIndex;
 
-    // the fadeout duration for the initial alpha tweens, not the screen wipe fadeout!
+    // The alpha fade of the other items already happened during the confirm flicker.
     var fadeOutDuration:Float = 0.4;
-    menuItems.forEach(item ->
-    {
-      if (rememberedSelectedIndex != item.ID) FlxTween.tween(item, {alpha: 0}, fadeOutDuration, {ease: FlxEase.quadOut});
-      else
-        item.visible = false;
-    });
 
     #if mobile
     if (optionsButton != null) FlxTween.tween(optionsButton, {alpha: 0}, fadeOutDuration, {ease: FlxEase.quadOut});
@@ -530,9 +521,8 @@ class MainMenuState extends MusicBeatState
     {
       FlxG.sound.music.volume += 0.5 * elapsed;
     }
-    handleInputs();
 
-    if (menuItems != null) menuItems.busy = !canInteract;
+    handleInputs(elapsed);
 
     #if mobile
     if (optionsButton != null)
@@ -548,7 +538,7 @@ class MainMenuState extends MusicBeatState
     #end
   }
 
-  function handleInputs():Void
+  function handleInputs(elapsed:Float):Void
   {
     if (!canInteract) return;
 
@@ -559,9 +549,6 @@ class MainMenuState extends MusicBeatState
     {
       persistentUpdate = false;
       uiStateMachine.transition(Interacting);
-
-      // Cancel the currently flickering menu item because it's about to call a state switch
-      if (menuItems != null && menuItems.busy) menuItems.cancelAccept();
 
       FlxG.state.openSubState(new DebugMenuSubState());
     }
@@ -661,9 +648,164 @@ class MainMenuState extends MusicBeatState
     }
     #end
 
-    if (controls.BACK_P) goBack();
+    if (selectedSomethin) return;
+
+    // --- Psych input handling, ported ---
+
+    if (controls.UI_UP_P) changeItem(-1);
+    if (controls.UI_DOWN_P) changeItem(1);
+
+    var allowMouse:Bool = allowMouse;
+    if (allowMouse && ((FlxG.mouse.deltaScreenX != 0 && FlxG.mouse.deltaScreenY != 0) || FlxG.mouse.justPressed)) // FlxG.mouse.deltaScreenX/Y checks is more accurate than FlxG.mouse.justMoved
+    {
+      allowMouse = false;
+      FlxG.mouse.visible = true;
+      timeNotMoving = 0;
+
+      var selectedItem:Null<FlxSprite> = switch (curColumn)
+      {
+        case CENTER: centerItems.members[curSelected];
+        case LEFT: leftItem;
+        case RIGHT: rightItem;
+      }
+
+      if (leftItem != null && FlxG.mouse.overlaps(leftItem))
+      {
+        allowMouse = true;
+        if (selectedItem != leftItem)
+        {
+          curColumn = LEFT;
+          changeItem();
+        }
+      }
+      else if (rightItem != null && FlxG.mouse.overlaps(rightItem))
+      {
+        allowMouse = true;
+        if (selectedItem != rightItem)
+        {
+          curColumn = RIGHT;
+          changeItem();
+        }
+      }
+      else
+      {
+        var dist:Float = -1;
+        var distItem:Int = -1;
+        for (i in 0...optionShit.length)
+        {
+          var memb:FlxSprite = centerItems.members[i];
+          if (FlxG.mouse.overlaps(memb))
+          {
+            var distance:Float = Math.sqrt(Math.pow(memb.getGraphicMidpoint().x - FlxG.mouse.screenX, 2)
+              + Math.pow(memb.getGraphicMidpoint().y - FlxG.mouse.screenY, 2));
+            if (dist < 0 || distance < dist)
+            {
+              dist = distance;
+              distItem = i;
+              allowMouse = true;
+            }
+          }
+        }
+
+        if (distItem != -1 && selectedItem != centerItems.members[distItem])
+        {
+          curColumn = CENTER;
+          curSelected = distItem;
+          changeItem();
+        }
+      }
+    }
+    else
+    {
+      timeNotMoving += elapsed;
+      if (timeNotMoving > 2) FlxG.mouse.visible = false;
+    }
+
+    switch (curColumn)
+    {
+      case CENTER:
+        if (controls.UI_LEFT_P && leftOption != null)
+        {
+          curColumn = LEFT;
+          changeItem();
+        }
+        else if (controls.UI_RIGHT_P && rightOption != null)
+        {
+          curColumn = RIGHT;
+          changeItem();
+        }
+
+      case LEFT:
+        if (controls.UI_RIGHT_P)
+        {
+          curColumn = CENTER;
+          changeItem();
+        }
+
+      case RIGHT:
+        if (controls.UI_LEFT_P)
+        {
+          curColumn = CENTER;
+          changeItem();
+        }
+    }
+
+    if (controls.BACK_P)
+    {
+      selectedSomethin = true;
+      FlxG.mouse.visible = false;
+      goBack();
+      return;
+    }
+
+    if (controls.ACCEPT || (FlxG.mouse.justPressed && allowMouse))
+    {
+      acceptCurrentOption();
+    }
   }
 
+  /**
+   * Psych's `changeItem`: swap the selected item's animation to `selected`,
+   * reset the rest to `idle`, and move the camera parallax target.
+   */
+  function changeItem(change:Int = 0):Void
+  {
+    if (change != 0) curColumn = CENTER;
+    curSelected = FlxMath.wrap(curSelected + change, 0, optionShit.length - 1);
+    FunkinSound.playOnce(Paths.sound('scrollMenu'));
+
+    for (item in centerItems)
+    {
+      if (item == null) continue;
+      item.animation.play('idle');
+      item.centerOffsets();
+    }
+
+    if (leftItem != null)
+    {
+      leftItem.animation.play('idle');
+      leftItem.centerOffsets();
+    }
+    if (rightItem != null)
+    {
+      rightItem.animation.play('idle');
+      rightItem.centerOffsets();
+    }
+
+    var selectedItem:Null<FlxSprite> = switch (curColumn)
+    {
+      case CENTER: centerItems.members[curSelected];
+      case LEFT: leftItem;
+      case RIGHT: rightItem;
+    }
+
+    if (selectedItem != null)
+    {
+      selectedItem.animation.play('selected');
+      selectedItem.centerOffsets();
+      camFollow.y = selectedItem.getGraphicMidpoint().y;
+    }
+  }
   function goOptions():Void
   {
     trace("OPTIONS: Interact complete.");
@@ -673,7 +815,7 @@ class MainMenuState extends MusicBeatState
   function goBack():Void
   {
     uiStateMachine.transition(Exiting);
-    rememberedSelectedIndex = menuItems?.selectedIndex ?? 0;
+    rememberedSelectedIndex = curSelected;
     FunkinSound.playOnce(Paths.sound('cancelMenu'));
 
     FlxG.switchState(() -> new TitleState());

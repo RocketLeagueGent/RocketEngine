@@ -1,5 +1,11 @@
 package funkin.modding;
 
+import funkin.data.song.SongData.SongChartData;
+import funkin.data.song.SongData.SongMetadata;
+import funkin.data.song.importer.FNFLegacyData;
+import funkin.data.song.importer.FNFLegacyImporter;
+import funkin.play.song.Song;
+import funkin.util.Constants;
 import funkin.util.FileUtil;
 
 using StringTools;
@@ -126,6 +132,86 @@ class PsychModHandler
   public static function hasMods():Bool
   {
     return loadedMods.length > 0;
+  }
+
+  /**
+   * Build registry entries for every indexed Psych Engine song by converting
+   * each difficulty chart through `FNFLegacyImporter`.
+   *
+   * Each `<song>-<diff>.json` is parsed as FNF Legacy format; the first
+   * successful parse provides the metadata, and every difficulty's chart data
+   * is merged into one `SongChartData`. Songs that fail to parse are skipped
+   * (with a trace) so one bad chart can't block the rest.
+   * @return Songs ready to insert into `SongRegistry.entries`.
+   */
+  public static function buildSongEntries():Array<Song>
+  {
+    var result:Array<Song> = [];
+
+    for (songId in allSongIds)
+    {
+      try
+      {
+        var diffs:Array<String> = listChartDifficulties(songId);
+        if (diffs.length == 0) continue;
+
+        // Default difficulties first, then custom ones alphabetically.
+        diffs.sort(function(a:String, b:String):Int
+        {
+          var ia:Int = Constants.DEFAULT_DIFFICULTY_LIST.indexOf(a);
+          var ib:Int = Constants.DEFAULT_DIFFICULTY_LIST.indexOf(b);
+          if (ia == -1) ia = Constants.DEFAULT_DIFFICULTY_LIST.length * 10;
+          if (ib == -1) ib = Constants.DEFAULT_DIFFICULTY_LIST.length * 10;
+          if (ia != ib) return ia - ib;
+          return a < b ? -1 : 1;
+        });
+
+        var metadata:Null<SongMetadata> = null;
+        var chart:Null<SongChartData> = null;
+        var parsedDiffs:Array<String> = [];
+
+        for (diff in diffs)
+        {
+          var chartPath:Null<String> = getChartPath(songId, diff);
+          if (chartPath == null) continue;
+
+          var raw:Null<String> = FileUtil.readStringFromPath(chartPath);
+          if (raw == null || raw.length == 0) continue;
+
+          var legacy:Null<FNFLegacyData> = FNFLegacyImporter.parseLegacyDataRaw(raw, chartPath);
+          if (legacy == null) continue;
+
+          var parsedChart:SongChartData = FNFLegacyImporter.migrateChartData(legacy, diff);
+
+          if (metadata == null || chart == null)
+          {
+            metadata = FNFLegacyImporter.migrateMetadata(legacy, diff);
+            chart = parsedChart;
+          }
+          else
+          {
+            // Merge additional difficulty files into the shared chart data.
+            for (k => v in parsedChart.notes) chart.notes.set(k, v);
+            for (k => v in parsedChart.scrollSpeed) chart.scrollSpeed.set(k, v);
+            if (chart.events.length == 0) chart.events = parsedChart.events;
+          }
+          parsedDiffs.push(diff);
+        }
+
+        if (metadata == null || chart == null || parsedDiffs.length == 0) continue;
+
+        metadata.playData.difficulties = parsedDiffs;
+
+        result.push(Song.buildRaw(songId, [metadata], Constants.DEFAULT_VARIATION, [Constants.DEFAULT_VARIATION => chart], false, false));
+      }
+      catch (e:Dynamic)
+      {
+        trace('PsychModHandler: failed to register song ($songId): $e');
+        continue;
+      }
+    }
+
+    return result;
   }
 
   /**

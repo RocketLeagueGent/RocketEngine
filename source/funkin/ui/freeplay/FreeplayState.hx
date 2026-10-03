@@ -410,6 +410,32 @@ class FreeplayState extends MusicBeatSubState
       }
     }
 
+    // PSYCH ENGINE MOD SONGS
+    // Psych songs aren't part of any level; surface them with a level fallback
+    // so Freeplay can display and launch them.
+    var psychLevel:Null<Level> = LevelRegistry.instance.fetchEntry('week1');
+    if (psychLevel != null)
+    {
+      for (psychSongId in funkin.modding.PsychModHandler.allSongIds)
+      {
+        if (SongRegistry.instance.fetchEntry(psychSongId, {variation: currentVariation}) == null) continue;
+
+        var alreadyListed:Bool = false;
+        for (levelId in LevelRegistry.instance.listSortedLevelIds())
+        {
+          var listedLevel:Null<Level> = LevelRegistry.instance.fetchEntry(levelId);
+          if (listedLevel != null && listedLevel.getSongs().contains(psychSongId))
+          {
+            alreadyListed = true;
+            break;
+          }
+        }
+        if (alreadyListed) continue;
+
+        songs.push(new FreeplaySongData(psychSongId, psychLevel, this));
+      }
+    }
+
     // LOAD MUSIC
 
     // LOAD CHARACTERS

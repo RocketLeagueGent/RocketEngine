@@ -109,6 +109,25 @@ class SongRegistry extends BaseRegistry<Song, SongMetadata, SongEntryParams> imp
         continue;
       }
     }
+
+    //
+    // PSYCH ENGINE MOD ENTRIES
+    //
+    var psychSongIds:Array<String> = funkin.modding.PsychModHandler.allSongIds;
+    if (psychSongIds.length > 0)
+    {
+      log(' INFO '.info() + 'Registering ${psychSongIds.length} Psych Engine mod song(s)...');
+      for (psychSong in funkin.modding.PsychModHandler.buildSongEntries())
+      {
+        if (entries.exists(psychSong.id))
+        {
+          log('Skipping Psych Engine song (${psychSong.id}); an entry with that id already exists.');
+          continue;
+        }
+        entries.set(psychSong.id, psychSong);
+        log('Registered Psych Engine song: ${psychSong.id}');
+      }
+    }
   }
 
   /**

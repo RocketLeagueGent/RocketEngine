@@ -363,6 +363,51 @@ class Song implements IPlayStateScriptedClass implements IRegistryEntry<SongMeta
       if (chart == null) continue;
       applyChartData(chart, vari);
     }
+
+    // RocketEngine: fill Story Mode fallback Erect difficulties (songs with no
+    // Erect chart on disk) with the default variation's hardest chart, so they
+    // remain playable end-to-end.
+    if (difficulties.exists('erect') && !_metadata.exists('erect'))
+    {
+      var fallbackMap:Null<Map<String, SongDifficulty>> = difficulties.get('erect');
+      var defaultMap:Null<Map<String, SongDifficulty>> = difficulties.get(Constants.DEFAULT_VARIATION);
+      var source:Null<SongDifficulty> = null;
+      if (defaultMap != null)
+      {
+        for (candidate in ['hard', 'normal', 'easy'])
+        {
+          var candidateDiff:Null<SongDifficulty> = defaultMap.get(candidate);
+          if (candidateDiff != null && candidateDiff.notes != null)
+          {
+            source = candidateDiff;
+            break;
+          }
+        }
+        if (source == null)
+        {
+          for (candidateDiff in defaultMap)
+          {
+            if (candidateDiff != null && candidateDiff.notes != null)
+            {
+              source = candidateDiff;
+              break;
+            }
+          }
+        }
+      }
+      if (source != null && fallbackMap != null)
+      {
+        for (diffId in fallbackMap.keys())
+        {
+          var fake:Null<SongDifficulty> = fallbackMap.get(diffId);
+          if (fake == null || fake.notes != null) continue;
+          fake.notes = source.notes;
+          fake.events = source.events;
+          fake.scrollSpeed = source.scrollSpeed;
+        }
+      }
+    }
+
     log('Cached ${variations.length} chart data files for song "$id"');
   }
 
@@ -418,6 +463,47 @@ class Song implements IPlayStateScriptedClass implements IRegistryEntry<SongMeta
    * @param variations A list of variations to fetch the difficulty for. Looks for the first variation that exists.
    * @return The difficulty data.
    */
+  /**
+   * RocketEngine: Story Mode fallback.
+   * If this song has no Erect variation metadata on disk, fabricate `erect` and
+   * `nightmare` difficulties under the `erect` variation using the default
+   * variation's metadata. Chart notes are filled in later by `cacheCharts()` from
+   * the default variation's hardest chart. This lets every week (except SP. COLLAB 1)
+   * offer Erect/Nightmare difficulties even where base assets lack them.
+   * Idempotent: does nothing if the song already has real Erect difficulties.
+   */
+  public function ensureFallbackErectDifficulties():Void
+  {
+    if (difficulties.exists('erect')) return;
+
+    var defaultMeta:Null<SongMetadata> = _metadata.get(Constants.DEFAULT_VARIATION);
+    if (defaultMeta == null) return;
+
+    var fallbackMap:Map<String, SongDifficulty> = [];
+    for (diffId in ['erect', 'nightmare'])
+    {
+      var difficulty:SongDifficulty = new SongDifficulty(this, diffId, 'erect');
+      difficulty.songName = defaultMeta.songName;
+      difficulty.songArtist = defaultMeta.artist;
+      difficulty.charter = defaultMeta.charter ?? Constants.DEFAULT_CHARTER;
+      difficulty.timeFormat = defaultMeta.timeFormat;
+      difficulty.divisions = defaultMeta.divisions;
+      difficulty.looped = defaultMeta.looped;
+      difficulty.generatedBy = defaultMeta.generatedBy;
+      difficulty.offsets = defaultMeta?.offsets ?? new SongOffsets();
+      difficulty.timeChanges = defaultMeta.timeChanges;
+      difficulty.difficultyRating = defaultMeta.playData?.ratings?.get(diffId) ?? 0;
+      difficulty.album = defaultMeta.playData?.album ?? '';
+      difficulty.stickerPack = defaultMeta.playData?.stickerPack ?? '';
+      difficulty.stage = defaultMeta.playData?.stage ?? Constants.DEFAULT_STAGE;
+      difficulty.noteStyle = defaultMeta.playData?.noteStyle ?? Constants.DEFAULT_NOTE_STYLE;
+      difficulty.characters = defaultMeta.playData?.characters ?? new SongCharacterData();
+      fallbackMap.set(diffId, difficulty);
+    }
+    difficulties.set('erect', fallbackMap);
+    log('Fabricated fallback Erect/Nightmare difficulties for "$id".');
+  }
+
   public function getDifficulty(?diffId:String, ?variation:String, ?variations:Array<String>):Null<SongDifficulty>
   {
     if (diffId == null) diffId = listDifficulties(variation, variations)[0];
@@ -856,9 +942,10 @@ class SongDifficulty
 
   public function playInst(volume:Float = 1.0, instId:String = '', looped:Bool = false):Void
   {
-    var suffix:String = (instId != '') ? '-$instId' : '';
-
-    FlxG.sound.music = FunkinSound.load(Paths.inst(this.song.id, suffix), volume, looped, false, true, false, null, null, true);
+    // Use getInstPath() so the fallback to characters.instrumental (e.g. 'erect')
+    // applies here too, matching what LoadingState preloads. Otherwise story mode
+    // Erect/Nightmare would play the default Inst.ogg instead of Inst-erect.ogg.
+    FlxG.sound.music = FunkinSound.load(getInstPath(instId), volume, looped, false, true, false, null, null, true);
 
     // Workaround for a bug where FlxG.sound.music.update() was being called twice.
     FlxG.sound.list.remove(FlxG.sound.music);

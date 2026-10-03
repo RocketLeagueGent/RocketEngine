@@ -173,6 +173,10 @@ class Level implements IRegistryEntry<LevelData>
 
     if (firstSong != null)
     {
+      // RocketEngine: fabricate Erect/Nightmare on songs lacking Erect metadata,
+      // so every week (except SP. COLLAB 1) can offer those difficulties.
+      firstSong.ensureFallbackErectDifficulties();
+
       // Don't display alternate characters in Story Mode. Only show `default` and `erect` variations.
       for (difficulty in firstSong.listDifficulties([Constants.DEFAULT_VARIATION, 'erect'], false, false))
       {
@@ -190,6 +194,7 @@ class Level implements IRegistryEntry<LevelData>
       var song:Song = SongRegistry.instance.fetchEntry(songId, {variation: Constants.DEFAULT_VARIATION});
 
       if (song == null) continue;
+      song.ensureFallbackErectDifficulties();
 
       for (difficulty in difficulties.copy())
       {
@@ -198,6 +203,16 @@ class Level implements IRegistryEntry<LevelData>
           difficulties.remove(difficulty);
         }
       }
+    }
+
+    // RocketEngine: every week except SP. COLLAB 1 (sserafim) gets Erect/Nightmare.
+    if (id != 'sserafim')
+    {
+      for (forcedDifficulty in ['erect', 'nightmare'])
+      {
+        if (!difficulties.contains(forcedDifficulty)) difficulties.push(forcedDifficulty);
+      }
+      difficulties.sort(SortUtil.defaultsThenAlphabetically.bind(Constants.DEFAULT_DIFFICULTY_LIST));
     }
 
     if (difficulties.length == 0) difficulties = ['normal'];

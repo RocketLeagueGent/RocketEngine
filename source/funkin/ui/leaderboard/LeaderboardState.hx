@@ -2,6 +2,7 @@ package funkin.ui.leaderboard;
 
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
+import flixel.util.FlxStringUtil;
 import flixel.FlxSubState;
 import funkin.api.leaderboard.LeaderboardClient;
 import funkin.api.leaderboard.LeaderboardClient.LeaderboardEntry;
@@ -151,7 +152,7 @@ class LeaderboardState extends FlxSubState
         final acc:Float = Math.round(e.accuracy * 10) / 10;
         final place:String = Std.string(idx + 1);
         final name:String = e.username.lpad(' ', 16);
-        final score:String = Std.string(e.score).lpad(' ', 9);
+        final score:String = FlxStringUtil.formatMoney(e.score, false, true).lpad(' ', 9);
         final tier:String = e.comboTier.lpad(' ', 6);
         row.text = '$place.  $name  $score  $acc%  $rank  $tier';
         row.visible = true;

@@ -490,6 +490,16 @@ class StoryMenuState extends MusicBeatState
     updateText();
     updateBackground(previousLevelId);
     updateProps();
+
+    // RocketEngine: switching weeks while on Erect/Nightmare drops you back to Hard.
+    if (currentIndex != prevIndex && (currentDifficultyId == 'erect' || currentDifficultyId == 'nightmare'))
+    {
+      currentDifficultyId = 'hard';
+      rememberedDifficulty = 'hard';
+      buildDifficultySprite('hard');
+      updateText();
+    }
+
     refresh();
   }
 
@@ -596,6 +606,9 @@ class StoryMenuState extends MusicBeatState
     var targetSongId:String = PlayStatePlaylist.playlistSongIds.shift();
 
     var targetSong:Song = SongRegistry.instance.fetchEntry(targetSongId, {variation: Constants.DEFAULT_VARIATION});
+    // RocketEngine: fabricate Erect/Nightmare if this song lacks Erect metadata,
+    // so Story Mode can launch those difficulties on any week.
+    targetSong?.ensureFallbackErectDifficulties();
 
     PlayStatePlaylist.campaignId = currentLevel.id;
     PlayStatePlaylist.campaignTitle = currentLevel.getTitle();
@@ -613,13 +626,17 @@ class StoryMenuState extends MusicBeatState
       FlxTransitionableState.skipNextTransOut = false;
 
       var targetVariation:String = targetSong.getFirstValidVariation(PlayStatePlaylist.campaignDifficulty);
+      // Resolve the instrumental too: Erect songs carry Inst-erect via characters.instrumental.
+      var targetInstId:String = targetSong.getBaseInstrumentalId(PlayStatePlaylist.campaignDifficulty,
+        targetSong.getDifficulty(PlayStatePlaylist.campaignDifficulty, targetVariation)?.variation ?? targetVariation);
 
       FlxG.camera.fade(FlxColor.BLACK, 0.2, false, function()
       {
         LoadingState.loadPlayState({
           targetSong: targetSong,
           targetDifficulty: PlayStatePlaylist.campaignDifficulty,
-          targetVariation: targetVariation
+          targetVariation: targetVariation,
+          targetInstrumental: targetInstId
         }, true);
       });
     });

@@ -3614,6 +3614,7 @@ class PlayState extends MusicBeatSubState
           {
             // no camFollow so it centers on horror tree
             var targetSong:Song = SongRegistry.instance.fetchEntry(targetSongId) ?? throw 'Could not find a song with the ID $targetSongId';
+            targetSong.ensureFallbackErectDifficulties();
             var targetVariation:String = currentVariation;
             if (!targetSong.hasDifficulty(PlayStatePlaylist.campaignDifficulty, currentVariation))
             {
@@ -3632,6 +3633,7 @@ class PlayState extends MusicBeatSubState
         {
           var targetSong:Song = SongRegistry.instance.fetchEntry(targetSongId,
             {variation: currentVariation}) ?? throw 'Could not find a song with ID $targetSongId';
+          targetSong.ensureFallbackErectDifficulties();
           var targetVariation:String = currentVariation;
           if (!targetSong.hasDifficulty(PlayStatePlaylist.campaignDifficulty, currentVariation))
           {

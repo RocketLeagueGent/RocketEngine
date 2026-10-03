@@ -8,9 +8,12 @@ import flixel.FlxG;
 import flixel.group.FlxSpriteGroup.FlxTypedSpriteGroup;
 import flixel.math.FlxMath;
 import flixel.text.FlxText;
+import flixel.text.FlxText.FlxTextFormat;
+import flixel.text.FlxText.FlxTextFormatMarkerPair;
 import flixel.tweens.FlxEase;
 import flixel.tweens.FlxTween;
 import flixel.util.FlxColor;
+import flixel.util.FlxStringUtil;
 import funkin.audio.FunkinSound;
 import funkin.data.song.SongRegistry;
 import funkin.ui.freeplay.FreeplayState;
@@ -506,6 +509,9 @@ class PauseSubState extends MusicBeatSubState
     metadataDeaths = new FlxText(20, metadataDifficulty.y + 32, camera.width - Math.max(40, funkin.ui.FullScreenScaleMode.gameNotchSize.x),
       '${PlayState.instance?.deathCounter} Blue Balls');
     metadataDeaths.setFormat(Paths.font('vcr.ttf'), 32, FlxColor.WHITE, FlxTextAlign.RIGHT);
+    // RocketEngine exclusive: highlight the word "Blue" in blue, and group the count.
+    metadataDeaths.applyMarkup('${FlxStringUtil.formatMoney(PlayState.instance?.deathCounter ?? 0, false, true)} ~Blue~ Balls',
+      [new FlxTextFormatMarkerPair(new FlxTextFormat(0xFF3399FF), '~')]);
     metadataDeaths.scrollFactor.set(0, 0);
     metadata.add(metadataDeaths);
 
@@ -994,12 +1000,17 @@ class PauseSubState extends MusicBeatSubState
     switch (this.currentMode)
     {
       case Standard | Difficulty:
-        metadataDeaths.text = '${PlayState.instance?.deathCounter} Blue Balls';
+        // RocketEngine exclusive: highlight the word "Blue" in blue, and group the count.
+        metadataDeaths.applyMarkup('${FlxStringUtil.formatMoney(PlayState.instance?.deathCounter ?? 0, false, true)} ~Blue~ Balls',
+          [new FlxTextFormatMarkerPair(new FlxTextFormat(0xFF3399FF), '~')]);
       case Charting:
+        metadataDeaths.clearFormats();
         metadataDeaths.text = 'Chart Editor Preview';
       case Conversation:
+        metadataDeaths.clearFormats();
         metadataDeaths.text = 'Dialogue Paused';
       case Cutscene:
+        metadataDeaths.clearFormats();
         metadataDeaths.text = 'Video Paused';
     }
   }

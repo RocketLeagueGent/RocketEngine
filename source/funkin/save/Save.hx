@@ -116,6 +116,8 @@ class Save implements ConsoleClass
         framerate: #if mobile refreshRate #else 60 #end,
         naughtyness: true,
         downscroll: false,
+        middlescroll: false,
+        tvMode: false,
         flashingLights: true,
         zoomCamera: true,
         debugDisplay: 'Off',
@@ -1141,6 +1143,19 @@ typedef SaveDataOptions =
    * @default `false`
    */
   var downscroll:Bool;
+
+  /**
+   * If enabled, the player strumline is centered on screen (Psych-style middlescroll).
+   * @default `false`
+   */
+  var middlescroll:Bool;
+
+  /**
+   * If enabled, the game is optimized for smart TV browsers: the mouse pointer
+   * is hidden and disabled, and TV remote back keys map to BACK.
+   * @default `false`
+   */
+  var tvMode:Bool;
 
   /**
    * If disabled, flashing lights in the main menu and other areas will be less intense.

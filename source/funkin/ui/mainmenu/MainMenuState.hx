@@ -66,7 +66,7 @@ class MainMenuState extends MusicBeatState
 {
   public static var curSelected:Int = 0;
   public static var curColumn:MainMenuColumn = CENTER;
-  var allowMouse:Bool = true; // Turn this off to block mouse movement in menus
+  var allowMouse:Bool = !Preferences.tvMode; // Turn this off to block mouse movement in menus
 
   var centerItems:FlxTypedGroup<FlxSprite> = new FlxTypedGroup<FlxSprite>();
   var leftItem:Null<FlxSprite>;
@@ -92,6 +92,14 @@ class MainMenuState extends MusicBeatState
 
   // Equivalent of Psych's `selectedSomethin`: blocks input while confirming.
   var selectedSomethin:Bool = false;
+
+  /**
+   * Set when a substate (e.g. the username prompt) closes: the Enter/Esc that
+   * dismissed it is still registered by flixel for this frame, and would
+   * otherwise immediately trigger accept/back on the menu underneath.
+   * Cleared once the accept/back controls are released.
+   */
+  var blockAcceptUntilRelease:Bool = false;
 
   var timeNotMoving:Float = 0;
 
@@ -333,6 +341,28 @@ class MainMenuState extends MusicBeatState
       uiStateMachine.transition(Idle);
       // Re-enable Psych-style input handling now that we're back from a substate.
       selectedSomethin = false;
+      // Swallow the keypress that just dismissed the substate (see field docs).
+      blockAcceptUntilRelease = true;
+
+      // Confirming an option tweens every other menu item's alpha to 0.
+      // Restore all items when returning from a substate (e.g. backing out of
+      // Freeplay) so the menu isn't left with invisible buttons.
+      for (memb in centerItems)
+      {
+        if (memb == null) continue;
+        memb.alpha = 1;
+        memb.visible = true;
+      }
+      if (leftItem != null)
+      {
+        leftItem.alpha = 1;
+        leftItem.visible = true;
+      }
+      if (rightItem != null)
+      {
+        rightItem.alpha = 1;
+        rightItem.visible = true;
+      }
 
       #if FEATURE_TOUCH_CONTROLS
       // we want to reset our backButton + optionsButton if we are returning to the main menu from a substate like freeplay
@@ -750,7 +780,15 @@ class MainMenuState extends MusicBeatState
         }
     }
 
-    if (controls.BACK_P)
+    // Consume the keypress that dismissed the previous substate: wait until
+    // accept/back are released before letting them act on the menu again.
+    if (blockAcceptUntilRelease && !controls.ACCEPT && !controls.BACK && !FlxG.keys.pressed.ENTER
+      && !FlxG.keys.pressed.ESCAPE && !FlxG.keys.pressed.BACKSPACE)
+    {
+      blockAcceptUntilRelease = false;
+    }
+
+    if (controls.BACK_P && !blockAcceptUntilRelease)
     {
       selectedSomethin = true;
       FlxG.mouse.visible = false;
@@ -758,7 +796,7 @@ class MainMenuState extends MusicBeatState
       return;
     }
 
-    if (controls.ACCEPT || (FlxG.mouse.justPressed && allowMouse))
+    if ((controls.ACCEPT || (FlxG.mouse.justPressed && allowMouse)) && !blockAcceptUntilRelease)
     {
       acceptCurrentOption();
     }

@@ -112,6 +112,53 @@ class Preferences
   }
 
   /**
+   * If enabled, the player strumline is centered on screen (Psych-style middlescroll).
+   * @default `false`
+   */
+  public static var middlescroll(get, set):Bool;
+
+  static function get_middlescroll():Bool
+  {
+    return Save?.instance?.options?.middlescroll ?? false;
+  }
+
+  static function set_middlescroll(value:Bool):Bool
+  {
+    var save:Save = Save.instance;
+    save.options.middlescroll = value;
+    Save.system.flush();
+    return value;
+  }
+
+  /**
+   * If enabled, the game is optimized for smart TV browsers (mouse disabled,
+   * TV remote back keys map to BACK). Auto-enabled when a TV browser is detected.
+   * @default `false`
+   */
+  public static var tvMode(get, set):Bool;
+
+  static function get_tvMode():Bool
+  {
+    return Save?.instance?.options?.tvMode ?? false;
+  }
+
+  static function set_tvMode(value:Bool):Bool
+  {
+    var save:Save = Save.instance;
+    save.options.tvMode = value;
+    Save.system.flush();
+    applyTvMode();
+    return value;
+  }
+
+  static function applyTvMode():Void
+  {
+    if (FlxG.mouse == null) return;
+    FlxG.mouse.enabled = !tvMode;
+    if (tvMode) FlxG.mouse.visible = false;
+  }
+
+  /**
    * If disabled, flashing lights in the main menu and other areas will be less intense.
    * @default `true`
    */
@@ -542,6 +589,20 @@ class Preferences
     setDebugDisplayBGOpacity(Preferences.debugDisplayBGOpacity / 100);
 
     toggleFramerateCap(Preferences.unlockedFramerate);
+
+    #if html5
+    // Auto-enable TV Mode when running in a smart TV browser (WebOS, Tizen,
+    // Android TV, etc.). Remote key events also trigger this at runtime
+    // (see WindowUtil), so TV controls are detected either way.
+    if (~/SmartTV|Web0S|webOS|Tizen|NetCast|HbbTV|GoogleTV|Vidaa|FirefoxTV|SMART-TV/i.match(js.Browser.navigator.userAgent)
+      && !tvMode)
+    {
+      tvMode = true;
+    }
+    #end
+
+    // Apply TV mode (disables the mouse pointer when enabled).
+    applyTvMode();
 
     #if mobile
     // Apply the allowScreenTimeout setting.

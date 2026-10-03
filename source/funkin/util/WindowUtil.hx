@@ -141,7 +141,34 @@ class WindowUtil
           openfl.Lib.application.window.fullscreen = !openfl.Lib.application.window.fullscreen;
         }
       }
+
+      #if html5
+      // TV remote Back/Exit keys (WebOS/Android TV: 461, Tizen: 10009,
+      // Android: 4) never produce Escape in TV browsers. Receiving one means
+      // TV controls are in use: auto-enable TV Mode, then synthesize Escape
+      // so controls.BACK fires.
+      if (e.keyCode == 461 || e.keyCode == 10009 || e.keyCode == 4)
+      {
+        e.preventDefault();
+        if (!Preferences.tvMode) Preferences.tvMode = true;
+        openfl.Lib.current.stage.dispatchEvent(
+          new openfl.events.KeyboardEvent(openfl.events.KeyboardEvent.KEY_DOWN, true, true, 0, 27));
+      }
+      #end
     });
+
+    #if html5
+    // Matching key-up so the synthesized Escape releases cleanly.
+    openfl.Lib.current.stage.addEventListener(openfl.events.KeyboardEvent.KEY_UP, (e:openfl.events.KeyboardEvent) ->
+    {
+      if (e.keyCode == 461 || e.keyCode == 10009 || e.keyCode == 4)
+      {
+        e.preventDefault();
+        openfl.Lib.current.stage.dispatchEvent(
+          new openfl.events.KeyboardEvent(openfl.events.KeyboardEvent.KEY_UP, true, true, 0, 27));
+      }
+    });
+    #end
     #end
   }
 

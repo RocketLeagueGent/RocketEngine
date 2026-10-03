@@ -58,22 +58,26 @@ class UsernamePromptState extends flixel.FlxSubState
 
     titleText = new FlxText(0, 130, FlxG.width, 'Choose a leaderboard username');
     titleText.setFormat(Paths.font('vcr.ttf'), 32, FlxColor.WHITE, CENTER);
+    titleText.scrollFactor.set(); // Screen-space: the parent menu's camera is scrolled.
     titleText.screenCenter(X);
     add(titleText);
 
     inputBg = new FlxText(0, 220, FlxG.width, '[' + ''.lpad(' ', MAX_LENGTH) + ']');
     inputBg.setFormat(Paths.font('vcr.ttf'), 40, 0xFF555555, CENTER);
+    inputBg.scrollFactor.set();
     inputBg.screenCenter(X);
     add(inputBg);
 
     inputText = new FlxText(0, 220, FlxG.width, '');
     inputText.setFormat(Paths.font('vcr.ttf'), 40, FlxColor.WHITE, CENTER);
+    inputText.scrollFactor.set();
     inputText.screenCenter(X);
     add(inputText);
 
     hintText = new FlxText(0, 320, FlxG.width,
       'Type a name (max ${MAX_LENGTH} chars)\nENTER: confirm   BACKSPACE: delete   ESC: cancel');
     hintText.setFormat(Paths.font('vcr.ttf'), 20, 0xAAAAAA, CENTER);
+    hintText.scrollFactor.set();
     hintText.screenCenter(X);
     add(hintText);
 

@@ -137,6 +137,10 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
     },
       Preferences.downscroll, #if mobile ControlsHandler.hasExternalInputDevice
       || Preferences.controlsScheme != FunkinHitboxControlSchemes.Arrows #end);
+    createPrefItemCheckbox('Middlescroll', 'When enabled, your strumline is centered in the middle of the screen.', function(value:Bool):Void
+    {
+      Preferences.middlescroll = value;
+    }, Preferences.middlescroll);
     createPrefItemPercentage('Strumline Background', 'Show a semi-transparent background behind the strumline.', function(value:Int):Void
     {
       Preferences.strumlineBackgroundOpacity = value;
@@ -200,6 +204,10 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
     {
       Preferences.autoFullscreen = value;
     }, Preferences.autoFullscreen);
+    createPrefItemCheckbox('TV Mode', 'For smart TVs: hides the mouse pointer and lets a TV remote (D-pad + OK + Back) control the game.', function(value:Bool):Void
+    {
+      Preferences.tvMode = value;
+    }, Preferences.tvMode);
     #end
 
     // disable on mobile and web since it barely has any effect

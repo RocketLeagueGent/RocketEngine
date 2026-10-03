@@ -156,6 +156,13 @@ class Strumline extends FlxSpriteGroup
   var noteSpacingScale:Float = 1;
 
   /**
+   * Extra X offset per column, in screen pixels, indexed by `DIRECTIONS`
+   * position (LEFT, DOWN, UP, RIGHT). Used by middlescroll to shove
+   * individual opponent columns to the screen edges like Psych Engine does.
+   */
+  var columnXOffsets:Array<Float> = [0.0, 0.0, 0.0, 0.0];
+
+  /**
    * The scale of the strumline. Use this to resize it rather than setting the scale directly.
    */
   public var strumlineScale(default, null):FlxPoint;
@@ -511,6 +518,28 @@ class Strumline extends FlxSpriteGroup
       note.x += INITIAL_OFFSET;
       note.y = this.strumlineNotes.y;
       noteStyle.applyStrumlineOffsets(note);
+    }
+  }
+
+  /**
+   * Offset a single column horizontally, in addition to normal note spacing.
+   * Repositions the arrow immediately; falling notes, holds, splashes and
+   * hold covers pick the new position up from `getXPos()` automatically.
+   * @param direction The column to offset.
+   * @param offset Screen pixels to add (can be negative).
+   */
+  public function setColumnXOffset(direction:NoteDirection, offset:Float):Void
+  {
+    var index:Int = DIRECTIONS.indexOf(direction);
+    if (index < 0) return;
+    columnXOffsets[index] = offset;
+
+    var arrow:StrumlineNote = getByDirection(direction);
+    if (arrow != null)
+    {
+      arrow.x = getXPos(direction) + this.strumlineNotes.x;
+      arrow.x += INITIAL_OFFSET;
+      noteStyle.applyStrumlineOffsets(arrow);
     }
   }
 
@@ -1336,7 +1365,7 @@ class Strumline extends FlxSpriteGroup
     #if mobile
     if (inArrowControlSchemeMode && isPlayer) pos = 35 * (FlxG.width / FlxG.height) / (FlxG.initialWidth / FlxG.initialHeight);
     #end
-    return switch (direction)
+    var result:Float = switch (direction)
     {
       case NoteDirection.LEFT:
         -pos * 2;
@@ -1348,7 +1377,10 @@ class Strumline extends FlxSpriteGroup
         pos + (3 * Strumline.NOTE_SPACING) * (noteSpacingScale * strumlineScale.x);
       default:
         -pos * 2;
-    }
+    };
+
+    var offsetIndex:Int = DIRECTIONS.indexOf(direction);
+    return result + (offsetIndex >= 0 ? columnXOffsets[offsetIndex] : 0.0);
   }
 
   /**

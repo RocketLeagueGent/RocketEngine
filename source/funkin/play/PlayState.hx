@@ -2251,9 +2251,16 @@ class PlayState extends MusicBeatSubState
 
     if (Preferences.middlescroll)
     {
-      // Psych parity: player strums dead-center, opponent strums dimmed.
+      // Psych parity (Psych 1.0.4 PlayState.generateStaticArrows):
+      // - player strums dead-center
+      // - opponent strums dimmed to 0.35
+      // - opponent UP/RIGHT columns push right by width/2 + 15 so they frame
+      //   the centered player strums at the right screen edge instead of
+      //   overlapping them (LEFT/DOWN stay at the left edge).
       playerStrumline.x = (FlxG.width - playerStrumline.width) / 2;
       opponentStrumline.alpha = 0.35;
+      opponentStrumline.setColumnXOffset(NoteDirection.UP, (FlxG.width / 2) + 15);
+      opponentStrumline.setColumnXOffset(NoteDirection.RIGHT, (FlxG.width / 2) + 15);
     }
 
     playerStrumline.y = Preferences.downscroll ? FlxG.height - playerStrumline.height - Constants.STRUMLINE_Y_OFFSET - noteStyle.getStrumlineOffsets()[1] : Constants.STRUMLINE_Y_OFFSET;

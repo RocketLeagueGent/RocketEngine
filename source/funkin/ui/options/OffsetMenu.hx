@@ -1,7 +1,8 @@
 package funkin.ui.options;
 
 import funkin.ui.MenuList.MenuTypedList;
-import funkin.ui.TextMenuList.TextMenuItem;
+import funkin.ui.AlphabetMenuList;
+import funkin.ui.AlphabetMenuList.AlphabetMenuItem;
 import funkin.util.GRhythmUtil;
 import funkin.mobile.ui.FunkinBackButton;
 #if mobile
@@ -47,7 +48,7 @@ class OffsetMenu extends Page<OptionsState.OptionsMenuPageName>
 
   // Page<OptionsState.OptionsMenuPageName> stuff
   var offsetItem:NumberPreferenceItem;
-  var items:TextMenuList;
+  var items:AlphabetMenuList;
   var preferenceItems:FlxTypedSpriteGroup<FlxSprite>;
   var backButton:FunkinBackButton;
   // Background
@@ -232,7 +233,7 @@ class OffsetMenu extends Page<OptionsState.OptionsMenuPageName>
 
     countText.cameras = [menuCamera];
 
-    add(items = new TextMenuList());
+    add(items = new AlphabetMenuList());
     add(preferenceItems = new FlxTypedSpriteGroup<FlxSprite>());
 
     offsetItem = createPrefItemNumber('Offset (Global)', 'Offset (Global)', function(value:Float)
@@ -789,21 +790,21 @@ class OffsetMenu extends Page<OptionsState.OptionsMenuPageName>
 
     var ind = 0;
     // Indent the selected item.
-    items.forEach(function(daItem:TextMenuItem)
+    items.forEach(function(daItem:AlphabetMenuItem)
     {
       // Initializing thy text width (if thou text present)
-      var thyTextWidth:Int = 0;
+      var thyTextWidth:Float = 0;
       switch (Type.typeof(daItem))
       {
         case TClass(NumberPreferenceItem):
           var numPref:NumberPreferenceItem = cast(daItem, NumberPreferenceItem);
-          thyTextWidth = numPref.lefthandText.getWidth();
+          thyTextWidth = numPref.lefthandText.width;
 
-          numPref.lefthandText.x = xLerp + (FlxG.width / 2) - ((thyTextWidth + daItem.atlasText.getWidth() + 20) / 2);
+          numPref.lefthandText.x = xLerp + (FlxG.width / 2) - ((thyTextWidth + daItem.label.width + 20) / 2);
           numPref.lefthandText.y = yLerp + ((120 * ind) + 30);
           daItem.x = numPref.lefthandText.x + thyTextWidth + 20;
         default:
-          daItem.x = xLerp + (FlxG.width / 2) - daItem.atlasText.getWidth() / 2;
+          daItem.x = xLerp + (FlxG.width / 2) - daItem.label.width / 2;
       }
 
       daItem.y = yLerp + ((120 * ind) + 30);
@@ -897,8 +898,7 @@ class OffsetMenu extends Page<OptionsState.OptionsMenuPageName>
 
   function createButtonItem(name:String, callback:Void->Void):Void
   {
-    var item = items.createItem(funkin.ui.FullScreenScaleMode.gameNotchSize.x, (120 * items.length) + 30, name, BOLD, callback);
-    items.addItem(name, item);
+    items.createItem(funkin.ui.FullScreenScaleMode.gameNotchSize.x, (120 * items.length) + 30, name, callback);
   }
 
   // Creates a preference item with a number input.

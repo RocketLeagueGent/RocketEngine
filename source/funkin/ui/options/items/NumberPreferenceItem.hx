@@ -1,8 +1,8 @@
 package funkin.ui.options.items;
 
 import flixel.math.FlxMath;
-import funkin.ui.TextMenuList.TextMenuItem;
-import funkin.ui.AtlasText;
+import funkin.ui.Alphabet;
+import funkin.ui.AlphabetMenuList.AlphabetMenuItem;
 import funkin.input.Controls;
 import funkin.util.TouchUtil;
 import funkin.util.SwipeUtil;
@@ -10,7 +10,7 @@ import funkin.util.SwipeUtil;
 /**
  * Preference item that allows the player to pick a value between min and max
  */
-class NumberPreferenceItem extends TextMenuItem
+class NumberPreferenceItem extends AlphabetMenuItem
 {
   function controls():Controls
   {
@@ -18,7 +18,7 @@ class NumberPreferenceItem extends TextMenuItem
   }
 
   // Widgets
-  public var lefthandText:AtlasText;
+  public var lefthandText:Alphabet;
 
   // Constants
   static final HOLD_DELAY:Float = 0.3; // seconds
@@ -53,7 +53,7 @@ class NumberPreferenceItem extends TextMenuItem
     {
       callback(this.currentValue);
     });
-    lefthandText = new AtlasText(x + 15, y, formatted(defaultValue), AtlasFont.DEFAULT);
+    lefthandText = new Alphabet(label.x + label.width + 60, y, formatted(defaultValue), false);
 
     updateHitbox();
 
@@ -73,6 +73,9 @@ class NumberPreferenceItem extends TextMenuItem
   {
     super.update(elapsed);
     lefthandText.text = formatted(currentValue);
+    lefthandText.x = label.x + label.width + 60;
+    lefthandText.y = y;
+    lefthandText.alpha = alpha;
 
     if (!selected) return;
 

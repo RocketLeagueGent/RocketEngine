@@ -6,6 +6,12 @@ class CheckboxPreferenceItem extends FlxSprite
 {
   public var currentValue(default, set):Bool;
 
+  /**
+   * Alpha this checkbox falls back to; lowered to 0.5 when unavailable so the
+   * per-frame selection sync can multiply against it (Psych-style dimming).
+   */
+  public var baseAlpha:Float = 1.0;
+
   public function new(x:Float, y:Float, defaultValue:Bool = false, available:Bool = true)
   {
     super(x, y);
@@ -17,7 +23,11 @@ class CheckboxPreferenceItem extends FlxSprite
     setGraphicSize(Std.int(width * 0.7));
     updateHitbox();
 
-    if (!available) this.alpha = 0.5;
+    if (!available)
+    {
+      this.alpha = 0.5;
+      baseAlpha = 0.5;
+    }
 
     this.currentValue = defaultValue;
   }

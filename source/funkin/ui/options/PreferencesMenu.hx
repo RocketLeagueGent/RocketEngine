@@ -8,11 +8,11 @@ import flixel.util.FlxColor;
 import flixel.FlxG;
 import flixel.group.FlxSpriteGroup.FlxTypedSpriteGroup;
 import flixel.math.FlxPoint;
-import funkin.ui.AtlasText.AtlasFont;
+import funkin.ui.Alphabet;
+import funkin.ui.AlphabetMenuList;
 import funkin.ui.Page;
 import funkin.graphics.FunkinCamera;
 import funkin.graphics.FunkinSprite;
-import funkin.ui.TextMenuList.TextMenuItem;
 import funkin.ui.options.items.CheckboxPreferenceItem;
 import funkin.ui.options.items.NumberPreferenceItem;
 import funkin.ui.options.items.EnumPreferenceItem;
@@ -29,7 +29,14 @@ import lime.ui.WindowVSyncMode;
 
 class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
 {
-  var items:TextMenuList;
+  /** Vertical position of the first preference row (Psych-style layout). */
+  static final START_Y:Float = 260;
+  /** Vertical distance between preference rows (Psych's 120 * 1.3). */
+  static final SPACING:Float = 156;
+
+  var items:AlphabetMenuList;
+  var header:Alphabet;
+  var checkboxItems:Map<String, CheckboxPreferenceItem> = new Map<String, CheckboxPreferenceItem>();
   var preferenceItems:FlxTypedSpriteGroup<FlxSprite>;
   var preferenceDesc:Array<String> = [];
   var itemDesc:FlxText;
@@ -52,8 +59,18 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
 
     camera = menuCamera;
 
-    add(items = new TextMenuList());
+    add(items = new AlphabetMenuList());
     add(preferenceItems = new FlxTypedSpriteGroup<FlxSprite>());
+
+    // Psych-style page header: fixed on screen, scaled down and dimmed.
+    // Constructed empty so scrollFactor/scale/alpha are set before any letters exist,
+    // then filled in; added after preferenceItems so it draws on top of the rows.
+    header = new Alphabet(75, 45, '', true);
+    header.scrollFactor.set(0, 0);
+    header.setScale(0.6);
+    header.alpha = 0.4;
+    header.text = 'PREFERENCES';
+    add(header);
 
     add(itemDescBox = new FunkinSprite());
     itemDescBox.cameras = [hudCamera];
@@ -246,38 +263,16 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
     // Positions the camera to the selected item.
     if (items != null) camFollow.y = items.selectedItem.y;
 
-    // Indent the selected item.
-    items.forEach(function(daItem:TextMenuItem)
+    // Psych-style selection highlight: selected item at full alpha, others dimmed.
+    // (Row positions are static now, alpha is the only per-frame sync needed.)
+    if (items != null)
     {
-      var thyOffset:Int = 0;
-      // Initializing thy text width (if thou text present)
-      var thyTextWidth:Int = 0;
-      switch (Type.typeof(daItem))
+      for (prefName => checkbox in checkboxItems)
       {
-        case TClass(CheckboxPreferenceItem):
-          thyTextWidth = 0;
-          thyOffset = 0;
-        case TClass(EnumPreferenceItem):
-          thyTextWidth = cast(daItem, EnumPreferenceItem<Dynamic>).lefthandText.getWidth();
-          thyOffset = 0 + thyTextWidth - 75;
-        case TClass(NumberPreferenceItem):
-          thyTextWidth = cast(daItem, NumberPreferenceItem).lefthandText.getWidth();
-          thyOffset = 0 + thyTextWidth - 75;
-        default:
-          // Huh?
+        var item = items.getItem(prefName);
+        if (item != null) checkbox.alpha = item.alpha * checkbox.baseAlpha;
       }
-
-      if (items.selectedItem == daItem)
-      {
-        thyOffset += 150;
-      }
-      else
-      {
-        thyOffset += 120;
-      }
-
-      daItem.x = thyOffset + funkin.ui.FullScreenScaleMode.gameNotchSize.x;
-    });
+    }
   }
 
   // - Preference item creation methods -
@@ -290,16 +285,19 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
    */
   function createPrefItemCheckbox(prefName:String, prefDesc:String, onChange:Bool->Void, defaultValue:Bool, available:Bool = true):Void
   {
-    var checkbox:CheckboxPreferenceItem = new CheckboxPreferenceItem(funkin.ui.FullScreenScaleMode.gameNotchSize.x, 120 * (items.length - 1 + 1),
-      defaultValue, available);
+    var rowY:Float = START_Y + SPACING * items.length;
+    var notchX:Float = funkin.ui.FullScreenScaleMode.gameNotchSize.x;
 
-    items.createItem(0, (120 * items.length) + 30, prefName, AtlasFont.BOLD, function()
+    var checkbox:CheckboxPreferenceItem = new CheckboxPreferenceItem(115 + notchX, rowY + 30, defaultValue, available);
+
+    items.createItem(220 + notchX, rowY, prefName, function()
     {
       var value = !checkbox.currentValue;
       onChange(value);
       checkbox.currentValue = value;
     }, false, available);
 
+    checkboxItems.set(prefName, checkbox);
     preferenceItems.add(checkbox);
     preferenceDesc.push(prefDesc);
   }
@@ -317,8 +315,8 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
   function createPrefItemNumber(prefName:String, prefDesc:String, onChange:Float->Void, ?valueFormatter:Float->String, defaultValue:Float, min:Float,
       max:Float, step:Float = 0.1, precision:Int):Void
   {
-    var item = new NumberPreferenceItem(funkin.ui.FullScreenScaleMode.gameNotchSize.x, (120 * items.length) + 30, prefName, defaultValue, min, max, step,
-      precision, onChange, valueFormatter);
+    var item = new NumberPreferenceItem(140 + funkin.ui.FullScreenScaleMode.gameNotchSize.x, START_Y + SPACING * items.length, prefName, defaultValue, min,
+      max, step, precision, onChange, valueFormatter);
     items.addItem(prefName, item);
     preferenceItems.add(item.lefthandText);
     preferenceDesc.push(prefDesc);
@@ -341,8 +339,8 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
     {
       return '${value}%';
     };
-    var item = new NumberPreferenceItem(funkin.ui.FullScreenScaleMode.gameNotchSize.x, (120 * items.length) + 30, prefName, defaultValue, min, max, 10, 0,
-      newCallback, formatter);
+    var item = new NumberPreferenceItem(140 + funkin.ui.FullScreenScaleMode.gameNotchSize.x, START_Y + SPACING * items.length, prefName, defaultValue, min,
+      max, 10, 0, newCallback, formatter);
     items.addItem(prefName, item);
     preferenceItems.add(item.lefthandText);
     preferenceDesc.push(prefDesc);
@@ -356,7 +354,8 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
    */
   function createPrefItemEnum<T>(prefName:String, prefDesc:String, values:Map<String, T>, onChange:String->T->Void, defaultKey:String):Void
   {
-    var item = new EnumPreferenceItem<T>(funkin.ui.FullScreenScaleMode.gameNotchSize.x, (120 * items.length) + 30, prefName, values, defaultKey, onChange);
+    var item = new EnumPreferenceItem<T>(140 + funkin.ui.FullScreenScaleMode.gameNotchSize.x, START_Y + SPACING * items.length, prefName, values,
+      defaultKey, onChange);
     items.addItem(prefName, item);
     preferenceItems.add(item.lefthandText);
     preferenceDesc.push(prefDesc);
@@ -364,7 +363,7 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
 
   override function exit():Void
   {
-    camFollow.setPosition(640, 30);
+    camFollow.setPosition(640, 260);
     menuCamera.snapToTarget();
     super.exit();
   }

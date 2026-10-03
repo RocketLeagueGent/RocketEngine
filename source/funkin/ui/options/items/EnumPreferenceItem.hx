@@ -1,7 +1,7 @@
 package funkin.ui.options.items;
 
-import funkin.ui.TextMenuList.TextMenuItem;
-import funkin.ui.AtlasText;
+import funkin.ui.Alphabet;
+import funkin.ui.AlphabetMenuList.AlphabetMenuItem;
 import funkin.input.Controls;
 #if mobile
 import funkin.util.SwipeUtil;
@@ -10,14 +10,14 @@ import funkin.util.SwipeUtil;
 /**
  * Preference item that allows the player to pick a value from an enum (list of values)
  */
-class EnumPreferenceItem<T> extends TextMenuItem
+class EnumPreferenceItem<T> extends AlphabetMenuItem
 {
   function controls():Controls
   {
     return PlayerSettings.player1.controls;
   }
 
-  public var lefthandText:AtlasText;
+  public var lefthandText:Alphabet;
   public var currentKey:String;
   public var onChangeCallback:Null<String->T->Void>;
   public var map:Map<String, T>;
@@ -47,7 +47,7 @@ class EnumPreferenceItem<T> extends TextMenuItem
       i += 1;
     }
 
-    lefthandText = new AtlasText(x + 15, y, formatted(defaultKey), AtlasFont.DEFAULT);
+    lefthandText = new Alphabet(label.x + label.width + 60, y, formatted(defaultKey), false);
 
     this.fireInstantly = true;
   }
@@ -77,6 +77,9 @@ class EnumPreferenceItem<T> extends TextMenuItem
     }
 
     lefthandText.text = formatted(currentKey);
+    lefthandText.x = label.x + label.width + 60;
+    lefthandText.y = y;
+    lefthandText.alpha = alpha;
   }
 
   function formatted(key:String):String

@@ -91,6 +91,15 @@ class PolymodHandler
   }
 
   /**
+   * The root folder Polymod loads V-Slice mods from.
+   * Also used by `PsychModHandler` so both mod formats share one mods folder.
+   */
+  public static function getModFolder():String
+  {
+    return MOD_FOLDER;
+  }
+
+  /**
    * Loads the game with ALL mods enabled with Polymod.
    */
   public static function loadAllMods():Void
@@ -577,6 +586,9 @@ class PolymodHandler
     // This will also register all scripts.
     // TODO: Replace this with loadEnabledMods().
     funkin.modding.PolymodHandler.loadAllMods();
+
+    // Re-scan Psych Engine mod folders so newly added/removed mods are indexed.
+    funkin.modding.PsychModHandler.scanMods();
 
     // Reload everything that is cached.
     // Currently this freezes the game for a second but I guess that's tolerable?

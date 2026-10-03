@@ -72,6 +72,9 @@ class Main extends Sprite
     // TODO: Replace with loadEnabledMods() once the user can configure the mod list.
     funkin.modding.PolymodHandler.loadAllMods();
 
+    // Also index Psych Engine format mods (folders without a Polymod manifest).
+    funkin.modding.PsychModHandler.scanMods();
+
     if (stage != null)
     {
       init();

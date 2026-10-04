@@ -436,13 +436,43 @@ class FunkinSound extends FlxSound implements ICloneable<FunkinSound>
 
     var sound:FunkinSound = pool.recycle(construct);
 
+    // Preserve the original path as the label before any conversion below.
+    var originalPath:Null<String> = (embeddedSound is String) ? cast embeddedSound : null;
+
+    #if sys
+    // Loose filesystem audio (e.g. Psych mods) isn't in the asset manifest, so
+    // flxel's loadEmbedded(String) would fail its Assets.exists() probe and never play.
+    // Convert it to a real Sound first, reusing the cached instance when preloaded.
+    if (originalPath != null && !openfl.utils.Assets.exists(originalPath) && funkin.util.FileUtil.fileExists(originalPath))
+    {
+      var fromDisk:Null<openfl.media.Sound> = null;
+      if (openfl.utils.Assets.cache.hasSound(originalPath))
+      {
+        // Preloaded by FunkinMemory - reuse it instead of reading the file again.
+        fromDisk = openfl.utils.Assets.cache.getSound(originalPath);
+      }
+      else
+      {
+        try
+        {
+          fromDisk = openfl.media.Sound.fromFile(originalPath);
+        }
+        catch (e:Dynamic)
+        {
+          FlxG.log.error('FunkinSound.load: failed to read "$originalPath": $e');
+        }
+      }
+      if (fromDisk != null) embeddedSound = fromDisk;
+    }
+    #end
+
     // Load the sound.
     // Sets `exists = true` as a side effect.
     sound.loadEmbedded(embeddedSound, looped, autoDestroy, onComplete);
 
-    if (embeddedSound is String)
+    if (originalPath != null)
     {
-      sound._label = embeddedSound;
+      sound._label = originalPath;
     }
     else
     {
@@ -489,6 +519,30 @@ class FunkinSound extends FlxSound implements ICloneable<FunkinSound>
     // we are bypassing the openfl/lime asset library fuss on web only
     #if web
     path = Paths.stripLibrary(path);
+    #end
+
+    #if sys
+    // FlxPartialSound's decoder probe requires the openfl asset manifest, which loose
+    // filesystem audio (Psych mods) isn't part of - its promise would never complete and
+    // the caller (e.g. Freeplay preview) would wait forever. Load the whole file from
+    // disk instead; slicing/seeking is skipped for these files.
+    if (!openfl.utils.Assets.exists(path) && funkin.util.FileUtil.fileExists(path))
+    {
+      try
+      {
+        var fromDisk:Null<openfl.media.Sound> = openfl.media.Sound.fromFile(path);
+        if (fromDisk != null)
+        {
+          var snd:Null<FunkinSound> = FunkinSound.load(fromDisk, volume, looped, autoDestroy, autoPlay, false, onComplete, onLoad);
+          promise.complete(snd);
+          return promise;
+        }
+      }
+      catch (e:Dynamic)
+      {
+        FlxG.log.error('FunkinSound.loadPartial: failed to read "$path": $e');
+      }
+    }
     #end
 
     var soundRequest = FlxPartialSound.partialLoadFromFile(path, start, end);

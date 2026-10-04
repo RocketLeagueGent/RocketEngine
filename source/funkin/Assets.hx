@@ -75,6 +75,27 @@ class Assets implements ConsoleClass
    */
   public static function getSound(path:String):openfl.media.Sound
   {
+    var sound:Null<openfl.media.Sound> = openfl.utils.Assets.getSound(path);
+    if (sound != null) return sound;
+
+    #if sys
+    // Loose filesystem audio (e.g. Psych mods) isn't in the asset manifest;
+    // openfl returns null for it, so read it from disk directly.
+    if (funkin.util.FileUtil.fileExists(path))
+    {
+      try
+      {
+        var fromDisk:Null<openfl.media.Sound> = openfl.media.Sound.fromFile(path);
+        if (fromDisk != null) return fromDisk;
+      }
+      catch (e:Dynamic)
+      {
+        trace('funkin.Assets.getSound: failed to read "$path": $e');
+      }
+    }
+    #end
+
+    // Unreadable assets historically return null at runtime despite the non-null type.
     return openfl.utils.Assets.getSound(path);
   }
 
@@ -138,7 +159,20 @@ class Assets implements ConsoleClass
    */
   public static function exists(path:String, ?type:openfl.utils.AssetType):Bool
   {
-    return openfl.utils.Assets.exists(path, type);
+    if (openfl.utils.Assets.exists(path, type)) return true;
+
+    #if sys
+    // Loose filesystem audio (e.g. Psych mods) lives outside the asset manifest.
+    // Restricted to SOUND/MUSIC (or untyped checks) so image/text lookups can't
+    // false-positive against an arbitrary file on disk.
+    if ((type == null || type == openfl.utils.AssetType.SOUND || type == openfl.utils.AssetType.MUSIC)
+      && funkin.util.FileUtil.fileExists(path))
+    {
+      return true;
+    }
+    #end
+
+    return false;
   }
 
   /**

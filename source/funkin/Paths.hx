@@ -143,6 +143,12 @@ class Paths implements ConsoleClass
   {
     if (suffix == null) suffix = ''; // no suffix, for a sorta backwards compatibility with older-ish voice files
 
+    #if sys
+    // Psych mods keep their audio outside the asset manifest; resolve it from disk first.
+    var psychPath:Null<String> = funkin.modding.PsychModHandler.getAudioPath(song, 'Voices$suffix');
+    if (psychPath != null) return psychPath;
+    #end
+
     return 'songs:assets/songs/${song.toLowerCase()}/Voices$suffix.${Constants.EXT_SOUND}';
   }
 
@@ -156,6 +162,16 @@ class Paths implements ConsoleClass
   public static function inst(song:String, ?suffix:String = '', withExtension:Bool = true):String
   {
     var ext:String = withExtension ? '.${Constants.EXT_SOUND}' : '';
+
+    #if sys
+    // Psych mods keep their audio outside the asset manifest; resolve it from disk first.
+    if (withExtension)
+    {
+      var psychPath:Null<String> = funkin.modding.PsychModHandler.getAudioPath(song, 'Inst$suffix');
+      if (psychPath != null) return psychPath;
+    }
+    #end
+
     return 'songs:assets/songs/${song.toLowerCase()}/Inst$suffix$ext';
   }
 

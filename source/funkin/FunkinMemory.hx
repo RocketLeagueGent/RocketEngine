@@ -345,12 +345,26 @@ class FunkinMemory
     var sound:Null<Sound> = Assets.getSound(key, true);
     if (sound == null)
     {
-      return;
+      #if sys
+      // Loose filesystem audio (e.g. Psych mods) isn't in the manifest; read it from
+      // disk once and register it in openfl's cache so every later load reuses this
+      // single instance instead of reading the file again.
+      if (funkin.util.FileUtil.fileExists(key))
+      {
+        try
+        {
+          sound = Sound.fromFile(key);
+          if (sound != null) Assets.cache.setSound(key, sound);
+        }
+        catch (e:Dynamic)
+        {
+          trace('FunkinMemory.cacheSound: failed to read "$key": $e');
+        }
+      }
+      #end
+      if (sound == null) return;
     }
-    else
-    {
-      currentCachedSounds.set(key, sound);
-    }
+    currentCachedSounds.set(key, sound);
   }
 
   /**
@@ -364,12 +378,24 @@ class FunkinMemory
     var sound:Null<Sound> = Assets.getSound(key, true);
     if (sound == null)
     {
-      return;
+      #if sys
+      // See cacheSound(): filesystem audio (e.g. Psych mods) lives outside the manifest.
+      if (funkin.util.FileUtil.fileExists(key))
+      {
+        try
+        {
+          sound = Sound.fromFile(key);
+          if (sound != null) Assets.cache.setSound(key, sound);
+        }
+        catch (e:Dynamic)
+        {
+          trace('FunkinMemory.permanentCacheSound: failed to read "$key": $e');
+        }
+      }
+      #end
+      if (sound == null) return;
     }
-    else
-    {
-      permanentCachedSounds.set(key, sound);
-    }
+    permanentCachedSounds.set(key, sound);
 
     if (sound != null) currentCachedSounds.set(key, sound);
   }

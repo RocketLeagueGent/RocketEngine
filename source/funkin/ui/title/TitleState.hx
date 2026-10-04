@@ -56,7 +56,7 @@ class TitleState extends MusicBeatState
   var logoBl:FunkinSprite;
   var gfDance:FunkinSprite;
   var danceLeft:Bool = false;
-  var titleText:FunkinSprite;
+  var startPrompt:AtlasText;
   #if FEATURE_VIDEO_PLAYBACK
   var attractTimer:FlxTimer;
   #end
@@ -121,19 +121,15 @@ class TitleState extends MusicBeatState
     add(logoBl);
     add(gfDance);
 
-    var titleTextPath:String = 'title-screen-text' #if mobile + '-mobile' #end;
+    // The old prompt was baked into a texture atlas, so its wording couldn't change.
+    // Use real text instead, at the same spot the atlas art used (bottom of screen).
+    startPrompt = new AtlasText(0, 0, 'Click Or Press Enter To Start', AtlasFont.BOLD);
+    startPrompt.screenCenter(X);
+    startPrompt.y = FlxG.height * 0.8;
+    add(startPrompt);
 
-    // On mobile, the text is shifted more to the left to center it properly.
-    titleText = FunkinSprite.createTextureAtlas(#if mobile 50 #else 100 #end + (FullScreenScaleMode.gameCutoutSize.x / 2), FlxG.height * 0.8, titleTextPath, {
-      cacheOnLoad: true
-    });
-    titleText.anim.addByFrameLabel('idle', "Idle", 24);
-    titleText.anim.addByFrameLabel('press', "Confirm", 24);
-    titleText.animation.play('idle');
-    titleText.updateHitbox();
-    titleText.shader = swagShader.shader;
-
-    add(titleText);
+    // Gentle blink so it reads as an interactive prompt.
+    FlxTween.tween(startPrompt, {alpha: 0.4}, 0.6, {type: PINGPONG, ease: FlxEase.quadInOut});
 
     if (!initialized) // Fix an issue where returning to the credits would play a black screen.
     {
@@ -151,7 +147,8 @@ class TitleState extends MusicBeatState
       credGroup.add(textGroup);
     }
 
-    FlxG.mouse.visible = false;
+    // The title screen accepts mouse clicks, so the cursor must be visible.
+    funkin.input.Cursor.show();
 
     if (initialized) skipIntro();
     else
@@ -224,7 +221,8 @@ class TitleState extends MusicBeatState
 
     Conductor.instance.update();
 
-    funkin.input.Cursor.hide();
+    // Keep the cursor visible; clicking anywhere acts like pressing Enter.
+    funkin.input.Cursor.show();
 
     if (FlxG.keys.justPressed.Y)
     {
@@ -236,7 +234,9 @@ class TitleState extends MusicBeatState
     if (FlxG.sound.music != null) Conductor.instance.update(FlxG.sound.music.time);
 
     // do controls.PAUSE | controls.ACCEPT instead?
-    var pressedEnter:Bool = FlxG.keys.justPressed.ENTER #if mobile || (TouchUtil.justReleased && !SwipeUtil.justSwipedAny) #end;
+    // Mouse clicks act exactly like Enter (skipping the intro, starting the game, ...).
+    // On mobile, touch already maps to the mouse, so keep the dedicated swipe/tap check only there.
+    var pressedEnter:Bool = FlxG.keys.justPressed.ENTER #if !mobile || FlxG.mouse.justPressed #end #if mobile || (TouchUtil.justReleased && !SwipeUtil.justSwipedAny) #end;
 
     var gamepad:FlxGamepad = FlxG.gamepads.lastActive;
 
@@ -254,7 +254,12 @@ class TitleState extends MusicBeatState
     if (pressedEnter && !transitioning && skippedIntro)
     {
       if (FlxG.sound.music != null) FlxG.sound.music.onComplete = null;
-      titleText.animation.play('press');
+      if (startPrompt != null)
+      {
+        // Stop the blink and hold the prompt steady while confirming.
+        FlxTween.cancelTweensOf(startPrompt, ['alpha']);
+        startPrompt.alpha = 1.0;
+      }
       FlxG.camera.flash(FlxColor.WHITE, 1);
       FunkinSound.playOnce(Paths.sound('confirmMenu'), 0.7);
       transitioning = true;

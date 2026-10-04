@@ -315,6 +315,38 @@ class PsychModHandler
     return findAudio(songId, 'voices');
   }
 
+  /**
+   * Resolve an engine-style audio request (`Inst`, `Voices`, `Voices-bf`, `Inst-erect`, ...)
+   * against a Psych mod's `songs/<song>/` folder.
+   *
+   * Only an EXACT (case-insensitive) filename-stem match counts. Deliberately no fallback
+   * to the unsuffixed file: `Song.buildPlayerVoiceList()` probes `Assets.exists(Paths.voices(id, '-bf'))`
+   * and strips suffixes while the probe fails. If a missing `-bf` resolved to `Voices.ogg`,
+   * both the player and opponent voice lists would resolve to the same file and it would
+   * play twice.
+   *
+   * @param songId   Song id (normalized like Psych's `formatToSongPath`).
+   * @param baseName Requested file stem without extension, e.g. `Inst`, `Voices-bf`.
+   * @return The full filesystem path, or null when this mod has no exact match (callers
+   *         then fall through to the manifest path, preserving vanilla behavior).
+   */
+  public static function getAudioPath(songId:String, baseName:String):Null<String>
+  {
+    var dir:Null<String> = audioDirs.get(normalizeId(songId));
+    if (dir == null) return null;
+
+    var lcTarget:String = baseName.toLowerCase();
+    for (file in safeReadDir(dir))
+    {
+      var lc:String = file.toLowerCase();
+      var dot:Int = lc.lastIndexOf('.');
+      if (dot == -1) continue;
+      if (!AUDIO_EXTENSIONS.contains(lc.substr(dot + 1))) continue;
+      if (lc.substr(0, dot) == lcTarget) return '$dir/$file';
+    }
+    return null;
+  }
+
   public static function getCharacterPath(charId:String):Null<String>
   {
     return characterFiles.get(normalizeId(charId));

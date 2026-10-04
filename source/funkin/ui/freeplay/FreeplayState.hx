@@ -2066,7 +2066,9 @@ class FreeplayState extends MusicBeatSubState
       _pressedOnCapsule = true;
     }
 
-    final framerateMultiplier:Float = (FlxG.updateFramerate / 60);
+    // Uncapped framerate reports 0 - fall back to 60 so touch scroll math stays finite.
+    final updateRate:Float = FlxG.updateFramerate > 0 ? FlxG.updateFramerate : 60;
+    final framerateMultiplier:Float = (updateRate / 60);
     for (touch in FlxG.touches.list)
     {
       if (touch.pressed && _pressedOnCapsule)
@@ -2079,7 +2081,7 @@ class FreeplayState extends MusicBeatSubState
 
           dpiScale = dpiScale.clamp(0.5, #if android 1 #else 2 #end);
 
-          var moveLength = delta / FlxG.updateFramerate / dpiScale;
+          var moveLength = delta / updateRate / dpiScale;
           _moveLength += Math.abs(moveLength);
           curSelectedFloat -= moveLength;
           updateSongsScroll();

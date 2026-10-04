@@ -384,23 +384,8 @@ class Preferences
 
   static function get_vsyncMode():lime.ui.WindowVSyncMode
   {
-    #if (mobile || web)
+    // VSync permanently off - it would cap the FPS to the monitor refresh rate.
     return lime.ui.WindowVSyncMode.OFF;
-    #else
-    var value = Save?.instance?.options?.vsyncMode ?? 'Off';
-
-    return switch (value)
-    {
-      case 'Off':
-        lime.ui.WindowVSyncMode.OFF;
-      case 'On':
-        lime.ui.WindowVSyncMode.ON;
-      case 'Adaptive':
-        lime.ui.WindowVSyncMode.ADAPTIVE;
-      default:
-        lime.ui.WindowVSyncMode.OFF;
-    };
-    #end
   }
 
   static function set_vsyncMode(value:lime.ui.WindowVSyncMode):lime.ui.WindowVSyncMode
@@ -435,11 +420,8 @@ class Preferences
 
   static function get_unlockedFramerate():Bool
   {
-    #if (mobile || web)
-    return false;
-    #else
-    return Save?.instance?.options?.unlockedFramerate ?? false;
-    #end
+    // The framerate is ALWAYS uncapped - there is no FPS limit in this engine.
+    return true;
   }
 
   static function set_unlockedFramerate(value:Bool):Bool
@@ -612,10 +594,9 @@ class Preferences
 
   static function toggleFramerateCap(unlocked:Bool):Void
   {
-    #if !(mobile || web)
-    FlxG.drawFramerate = unlocked ? 0 : framerate;
-    FlxG.updateFramerate = unlocked ? 0 : framerate;
-    #end
+    // The framerate is ALWAYS uncapped - any cap value passed here is ignored.
+    FlxG.drawFramerate = 0;
+    FlxG.updateFramerate = 0;
   }
 
   public static function setDebugDisplayMode(mode:DebugDisplayMode):Void

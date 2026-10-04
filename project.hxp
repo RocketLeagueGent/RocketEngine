@@ -617,8 +617,8 @@ class Project extends HXProject
     this.meta.buildNumber = Std.string(BUILD_NUMBER);
 
     // Configure the window.
-    // Automatically configure FPS.
-    this.window.fps = 60;
+    // Completely uncapped FPS - no engine frame limit.
+    this.window.fps = 0;
     // Set the window size.
     this.window.width = 1280;
     this.window.height = 720;

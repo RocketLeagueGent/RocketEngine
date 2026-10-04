@@ -61,6 +61,42 @@ class FunkinMemory
     permanentCacheTexture(Paths.image('fonts/default', null));
     permanentCacheTexture(Paths.image('fonts/freeplay-clear', null));
 
+    // Menu warmup: flixel destroys non-persistent graphics on every state switch
+    // (main menu <-> options, story mode purge), which forced a full disk reload
+    // and made menu transitions take seconds. Keep the menu layer resident.
+    permanentCacheTexture(Paths.image('menuBG'));
+
+    // Main menu item atlases (story_mode, freeplay, credits, achievements, options).
+    for (menuItem in ['story_mode', 'freeplay', 'credits', 'achievements', 'options'])
+    {
+      permanentCacheTexture(Paths.image('mainmenu/menu_${menuItem}'));
+    }
+
+    // Freeplay static layer: selector, capsule kit, score/clear UI, transitions,
+    // and the default character background. Per-song album art stays lazy.
+    for (freeplayAsset in [
+      'freeplay/rankVignette',
+      'freeplay/clearBox',
+      'freeplay/transitionGradient',
+      'freeplay/highscore',
+      'freeplay/sparks',
+      'freeplay/sparksadd',
+      'freeplay/sparkle',
+      'freeplay/favHeart',
+      'freeplay/rankbadges',
+      'freeplay/freeplaySelector',
+      'freeplay/freeplayCapsule/capsule/freeplayCapsule',
+      'freeplay/freeplayCapsule/bpmtext',
+      'freeplay/freeplayCapsule/difficultytext',
+      'freeplay/freeplayCapsule/new',
+      'freeplay/freeplayCapsule/bignumbers',
+      'freeplay/freeplayCapsule/smallnumbers',
+      'freeplay/freeplayBGweek1-bf'
+    ])
+    {
+      permanentCacheTexture(Paths.image(freeplayAsset));
+    }
+
     var allSounds:Array<String> = Assets.list(AssetType.SOUND);
 
     for (file in allSounds)

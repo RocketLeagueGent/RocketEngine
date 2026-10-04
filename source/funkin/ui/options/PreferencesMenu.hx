@@ -210,36 +210,8 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
     }, Preferences.tvMode);
     #end
 
-    // disable on mobile and web since it barely has any effect
-    #if !(mobile || web)
-    createPrefItemEnum('VSync', "When enabled, the game attempts to match the framerate with your monitor's refresh rate.", [
-      "Off" => WindowVSyncMode.OFF,
-      "On" => WindowVSyncMode.ON,
-      "Adaptive" => WindowVSyncMode.ADAPTIVE,
-    ], function(key:String, value:WindowVSyncMode):Void
-    {
-      trace("Setting vsync mode to " + key);
-      Preferences.vsyncMode = value;
-    }, switch (Preferences.vsyncMode)
-      {
-        case WindowVSyncMode.OFF:
-          "Off";
-        case WindowVSyncMode.ON:
-          "On";
-        case WindowVSyncMode.ADAPTIVE:
-          "Adaptive";
-      });
-    createPrefItemCheckbox('Unlocked Framerate', 'When enabled, the framerate is unlocked.\nThis setting is mutually exclusive with FPS.',
-      function(value:Bool):Void
-      {
-        Preferences.unlockedFramerate = value;
-      }, Preferences.unlockedFramerate);
-    createPrefItemNumber('FPS', 'The maximum framerate that the game targets.\nThis setting is mutually exclusive with Unlocked Framerate.',
-      function(value:Float)
-      {
-        Preferences.framerate = Std.int(value);
-      }, null, Preferences.framerate, 30, 500, 5, 0);
-    #end
+    // VSync / Unlocked Framerate / FPS cap menu items removed:
+    // the engine runs completely uncapped and VSync is permanently off.
 
     #if FEATURE_SCREENSHOTS
     createPrefItemCheckbox('Hide Mouse', 'When enabled, the mouse is hidden while taking a screenshot.', function(value:Bool):Void

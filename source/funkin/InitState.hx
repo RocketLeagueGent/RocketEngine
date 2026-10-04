@@ -319,16 +319,9 @@ class InitState extends FlxState
   function onGainFocus():Void
   {
     #if !mobile
-    if (Preferences.unlockedFramerate)
-    {
-      FlxG.updateFramerate = 0;
-      FlxG.drawFramerate = 0;
-    }
-    else
-    {
-      FlxG.updateFramerate = Preferences.framerate;
-      FlxG.drawFramerate = Preferences.framerate;
-    }
+    // The framerate is always uncapped - restore the uncapped rate on focus gain.
+    FlxG.updateFramerate = 0;
+    FlxG.drawFramerate = 0;
     #end
 
     #if FEATURE_LOST_FOCUS_VOLUME

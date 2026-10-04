@@ -56,8 +56,7 @@ class TitleState extends MusicBeatState
   var logoBl:FunkinSprite;
   var gfDance:FunkinSprite;
   var danceLeft:Bool = false;
-  var startPrompt:AtlasText;
-  var promptHue:Float = 0;
+  var titleText:FunkinSprite;
   #if FEATURE_VIDEO_PLAYBACK
   var attractTimer:FlxTimer;
   #end
@@ -122,26 +121,19 @@ class TitleState extends MusicBeatState
     add(logoBl);
     add(gfDance);
 
-    // The old prompt was baked into a texture atlas, so its wording couldn't change.
-    // Use real text instead, at the same spot the atlas art used (bottom of screen).
-    startPrompt = new AtlasText(0, 0, 'Click Or Press Enter To Start', AtlasFont.BOLD);
+    var titleTextPath:String = 'title-screen-text' #if mobile + '-mobile' #end;
 
-    // The font's native size makes this long string overflow the screen. Scale each
-    // letter AND its layout position by the same factor (scaling the group alone would
-    // only shrink letters in place, leaving gaps between them).
-    var promptScale:Float = 0.75;
-    for (member in startPrompt.members)
-    {
-      if (member == null) continue;
-      member.scale.set(promptScale, promptScale);
-      member.updateHitbox();
-      member.x *= promptScale;
-      member.y *= promptScale;
-    }
+    // On mobile, the text is shifted more to the left to center it properly.
+    titleText = FunkinSprite.createTextureAtlas(#if mobile 50 #else 100 #end + (FullScreenScaleMode.gameCutoutSize.x / 2), FlxG.height * 0.8, titleTextPath, {
+      cacheOnLoad: true
+    });
+    titleText.anim.addByFrameLabel('idle', "Idle", 24);
+    titleText.anim.addByFrameLabel('press', "Confirm", 24);
+    titleText.animation.play('idle');
+    titleText.updateHitbox();
+    titleText.shader = swagShader.shader;
 
-    startPrompt.screenCenter(X);
-    startPrompt.y = FlxG.height * 0.8;
-    add(startPrompt);
+    add(titleText);
 
     if (!initialized) // Fix an issue where returning to the credits would play a black screen.
     {
@@ -266,6 +258,7 @@ class TitleState extends MusicBeatState
     if (pressedEnter && !transitioning && skippedIntro)
     {
       if (FlxG.sound.music != null) FlxG.sound.music.onComplete = null;
+      titleText.animation.play('press');
       FlxG.camera.flash(FlxColor.WHITE, 1);
       FunkinSound.playOnce(Paths.sound('confirmMenu'), 0.7);
       transitioning = true;
@@ -290,14 +283,6 @@ class TitleState extends MusicBeatState
     if (controls.UI_LEFT #if mobile || SwipeUtil.justSwipedLeft #end) swagShader.update(-elapsed * 0.1);
     if (controls.UI_RIGHT #if mobile || SwipeUtil.justSwipedRight #end) swagShader.update(elapsed * 0.1);
     if (!cheatActive && skippedIntro) cheatCodeShit();
-
-    // Rainbow-cycle the start prompt's color (stands in for the old art's color animation).
-    if (startPrompt != null)
-    {
-      promptHue += elapsed * 90; // full rainbow cycle every 4 seconds
-      if (promptHue >= 360) promptHue -= 360;
-      startPrompt.color = FlxColor.fromHSB(promptHue, 1.0, 1.0);
-    }
 
     super.update(elapsed);
   }

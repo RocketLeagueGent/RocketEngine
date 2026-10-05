@@ -332,7 +332,6 @@ class Song implements IPlayStateScriptedClass implements IRegistryEntry<SongMeta
         difficulty.difficultyRating = metadata.playData.ratings.get(diffId) ?? 0;
         difficulty.album = metadata.playData.album;
         difficulty.stickerPack = metadata.playData.stickerPack;
-        difficulty.discordRPCImage = metadata.playData.discordRPCImage;
 
         difficulty.stage = metadata.playData.stage;
         difficulty.noteStyle = metadata.playData.noteStyle;
@@ -713,11 +712,6 @@ class Song implements IPlayStateScriptedClass implements IRegistryEntry<SongMeta
     }
   }
 
-  public function isDiscordRPCAnonymous():Bool
-  {
-    return false;
-  }
-
   public function onPause(event:PauseScriptEvent):Void
   {
   };
@@ -884,7 +878,6 @@ class SongDifficulty
   public var difficultyRating:Int = 0;
   public var album:Null<String> = null;
   public var stickerPack:Null<String> = null;
-  public var discordRPCImage:Null<String> = null;
 
   public function new(song:Song, diffId:String, variation:String)
   {

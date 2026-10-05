@@ -106,7 +106,7 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
   {
     itemDescBox.makeSolidColor(1, 1, FlxColor.BLACK);
     itemDescBox.alpha = 0.6;
-    itemDesc.setFormat(Paths.font('vcr.ttf'), 32, FlxColor.WHITE, FlxTextAlign.CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+    itemDesc.setFormat(Paths.font(), 32, FlxColor.WHITE, FlxTextAlign.CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
     itemDesc.borderSize = 3;
 
     // Update the text.
@@ -226,13 +226,6 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
     {
       Preferences.previewOnSave = value;
     }, Preferences.previewOnSave);
-    #end
-
-    #if FEATURE_DISCORD_RPC
-    createPrefItemCheckbox('Discord RPC', 'Toggles Discord RPC.', function(value:Bool):Void
-    {
-      Preferences.enabledDiscordRPC = value;
-    }, Preferences.enabledDiscordRPC);
     #end
   }
 

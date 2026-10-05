@@ -28,9 +28,6 @@ import funkin.util.MathUtil;
 import funkin.util.SwipeUtil;
 import funkin.util.TouchUtil;
 import funkin.ui.FullScreenScaleMode;
-#if FEATURE_DISCORD_RPC
-import funkin.api.discord.DiscordClient;
-#end
 
 class StoryMenuState extends MusicBeatState
 {
@@ -212,11 +209,6 @@ class StoryMenuState extends MusicBeatState
     changeDifficulty();
     changeLevel();
     refresh();
-
-    #if FEATURE_DISCORD_RPC
-    // Updating Discord Rich Presence
-    DiscordClient.instance.setPresence({state: 'In the Menus', details: null});
-    #end
 
     #if mobile
     addBackButton(FlxG.width - 230, FlxG.height - 170, FlxColor.WHITE, goBack, 0.7);

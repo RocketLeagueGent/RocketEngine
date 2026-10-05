@@ -53,11 +53,4 @@ typedef AlbumData =
    */
   @:optional
   public var albumOSTName:String;
-
-  /**
-   * An external link to the album image.
-   * This is used for Discord Rich Presence.
-   */
-  @:optional
-  public var discordRPCImage:String;
 }

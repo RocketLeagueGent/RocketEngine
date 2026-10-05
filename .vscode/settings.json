@@ -91,11 +91,6 @@
   "lime.defaultTargetConfiguration": "Windows / Debug",
   "lime.targetConfigurations": [
     {
-      "label": "Windows / Debug (Discord)",
-      "target": "windows",
-      "args": ["-debug", "-DFEATURE_DEBUG_FUNCTIONS", "-DFEATURE_DISCORD_RPC"]
-    },
-    {
       "label": "Windows / Debug (FlxAnimate Test)",
       "target": "windows",
       "args": ["-debug", "-DANIMATE", "-DFEATURE_DEBUG_FUNCTIONS"]

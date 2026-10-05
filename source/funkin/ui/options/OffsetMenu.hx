@@ -208,7 +208,7 @@ class OffsetMenu extends Page<OptionsState.OptionsMenuPageName>
     receptor.updateHitbox();
 
     jumpInText = new FlxText(0, 0);
-    jumpInText.setFormat(Paths.font('vcr.ttf'), 32, FlxColor.WHITE, FlxTextAlign.CENTER);
+    jumpInText.setFormat(Paths.font(), 32, FlxColor.WHITE, FlxTextAlign.CENTER);
     jumpInText.setBorderStyle(FlxTextBorderStyle.OUTLINE, FlxColor.BLACK, 4);
     add(jumpInText);
 
@@ -218,7 +218,7 @@ class OffsetMenu extends Page<OptionsState.OptionsMenuPageName>
     // below receptor
 
     countText = new FlxText(0, 0);
-    countText.setFormat(Paths.font('vcr.ttf'), 32, FlxColor.WHITE, FlxTextAlign.CENTER);
+    countText.setFormat(Paths.font(), 32, FlxColor.WHITE, FlxTextAlign.CENTER);
     countText.setBorderStyle(FlxTextBorderStyle.OUTLINE, FlxColor.BLACK, 4);
     add(countText);
 

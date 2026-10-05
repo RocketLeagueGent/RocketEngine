@@ -157,11 +157,11 @@ class AwardsMenuState extends MusicBeatState
     add(bottomBox);
 
     nameText = new FlxText(50, bottomBox.y + 10, FlxG.width - 100, '', 32);
-    nameText.setFormat(Paths.font('vcr.ttf'), 32, FlxColor.WHITE, FlxTextAlign.CENTER);
+    nameText.setFormat(Paths.font(), 32, FlxColor.WHITE, FlxTextAlign.CENTER);
     nameText.scrollFactor.set();
 
     descText = new FlxText(50, nameText.y + 38, FlxG.width - 100, '', 24);
-    descText.setFormat(Paths.font('vcr.ttf'), 24, FlxColor.WHITE, FlxTextAlign.CENTER);
+    descText.setFormat(Paths.font(), 24, FlxColor.WHITE, FlxTextAlign.CENTER);
     descText.scrollFactor.set();
 
     // Progress bar (this engine has no Bar class, so we roll our own).
@@ -177,7 +177,7 @@ class AwardsMenuState extends MusicBeatState
     barFill.clipRect = new FlxRect(0, 0, 0, barHeight);
 
     progressTxt = new FlxText(50, barBG.y - 6, FlxG.width - 100, '', 32);
-    progressTxt.setFormat(Paths.font('vcr.ttf'), 32, FlxColor.WHITE, FlxTextAlign.CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+    progressTxt.setFormat(Paths.font(), 32, FlxColor.WHITE, FlxTextAlign.CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
     progressTxt.borderSize = 2;
     progressTxt.scrollFactor.set();
 
@@ -375,25 +375,25 @@ class ResetAwardSubState extends MusicBeatSubState
     FlxTween.tween(bg, {alpha: 0.6}, 0.4, {ease: FlxEase.quartInOut});
 
     var title:FlxText = new FlxText(0, 180, FlxG.width, 'Reset Achievement:', 48);
-    title.setFormat(Paths.font('vcr.ttf'), 48, FlxColor.WHITE, FlxTextAlign.CENTER);
+    title.setFormat(Paths.font(), 48, FlxColor.WHITE, FlxTextAlign.CENTER);
     title.scrollFactor.set();
     add(title);
 
     var nameLbl:FlxText = new FlxText(50, title.y + 90, FlxG.width - 100, parent.options[parent.curSelected].displayName, 40);
-    nameLbl.setFormat(Paths.font('vcr.ttf'), 40, FlxColor.WHITE, FlxTextAlign.CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+    nameLbl.setFormat(Paths.font(), 40, FlxColor.WHITE, FlxTextAlign.CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
     nameLbl.borderSize = 2;
     nameLbl.scrollFactor.set();
     add(nameLbl);
 
     yesText = new FlxText(0, nameLbl.y + 120, 300, 'Yes', 40);
-    yesText.setFormat(Paths.font('vcr.ttf'), 40, FlxColor.RED, FlxTextAlign.CENTER);
+    yesText.setFormat(Paths.font(), 40, FlxColor.RED, FlxTextAlign.CENTER);
     yesText.screenCenter(X);
     yesText.x -= 200;
     yesText.scrollFactor.set();
     add(yesText);
 
     noText = new FlxText(0, nameLbl.y + 120, 300, 'No', 40);
-    noText.setFormat(Paths.font('vcr.ttf'), 40, FlxColor.WHITE, FlxTextAlign.CENTER);
+    noText.setFormat(Paths.font(), 40, FlxColor.WHITE, FlxTextAlign.CENTER);
     noText.screenCenter(X);
     noText.x += 200;
     noText.scrollFactor.set();

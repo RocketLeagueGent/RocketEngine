@@ -38,7 +38,6 @@ There are several useful build flags you can add to a build to affect how it wor
 - `-DFEATURE_POLYMOD_MODS` or `-DNO_FEATURE_POLYMOD_MODS` to forcibly enable or disable modding support.
 - `-DREDIRECT_ASSETS_FOLDER` or `-DNO_REDIRECT_ASSETS_FOLDER` to forcibly enable or disable asset redirection.
     - This feature causes the game to load exported assets from the project's assets folder rather than the exported one. Great for fast iteration, but the game will break if you try to zip it up and send it to someone, so it's disabled for release builds.
-- `-DFEATURE_DISCORD_RPC` or `-DNO_FEATURE_DISCORD_RPC` to forcibly enable or disable support for Discord Rich Presence.
 - `-DFEATURE_VIDEO_PLAYBACK` or `-DNO_FEATURE_VIDEO_PLAYBACK` to forcibly enable or disable video cutscene support.
 - `-DFEATURE_SCREENSHOTS` or `-DNO_FEATURE_SCREENSHOTS` to forcibly enable or disable the screenshots feature.
 - `-DFEATURE_CHART_EDITOR` or `-DNO_FEATURE_CHART_EDITOR` to forcibly enable or disable the chart editor in the Debug menu.

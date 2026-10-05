@@ -8,9 +8,6 @@ import funkin.save.Save;
 import funkin.util.WindowUtil;
 import funkin.util.HapticUtil.HapticsMode;
 import funkin.ui.debug.FunkinDebugDisplay.DebugDisplayMode;
-#if FEATURE_DISCORD_RPC
-import funkin.api.discord.DiscordClient;
-#end
 
 /**
  * A core class which provides a store of user-configurable, globally relevant values.
@@ -441,45 +438,6 @@ class Preferences
     #end
   }
 
-  public static var enabledDiscordRPC(get, set):Bool;
-
-  static function get_enabledDiscordRPC():Bool
-  {
-    return Save?.instance?.options?.enabledDiscordRPC ?? true;
-  }
-
-  static function set_enabledDiscordRPC(value:Bool):Bool
-  {
-    #if FEATURE_DISCORD_RPC
-    toggleDiscordRPC(value);
-    #end
-
-    var save:Save = Save.instance;
-    save.options.enabledDiscordRPC = value;
-    Save.system.flush();
-    return value;
-  }
-
-  #if FEATURE_DISCORD_RPC
-  public static function toggleDiscordRPC(enable:Bool)
-  {
-    if (DiscordClient.instance == null) return;
-
-    if (enable)
-    {
-      DiscordClient.instance.init();
-
-      if (DiscordClient.presenceParamsCache != null)
-      {
-        DiscordClient.instance.setPresence(DiscordClient.presenceParamsCache);
-      }
-    }
-    else
-    {
-      DiscordClient.instance.shutdown();
-    }
-  }
-  #end
 
   /**
    * If >0, the game will display a semi-opaque background under the notes.

@@ -196,12 +196,6 @@ class MainMenuState extends MusicBeatState
       rightItem.x -= rightItem.width;
     }
 
-    // Bottom-left version watermark, Psych style.
-    var engineVer:FlxText = new FlxText(12, FlxG.height - 44, 0, '${Constants.TITLE} ${Constants.VERSION}', 12);
-    engineVer.scrollFactor.set();
-    engineVer.setFormat(Paths.font(), 16, FlxColor.WHITE, FlxTextAlign.LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
-    add(engineVer);
-
     changeItem();
 
     FlxG.camera.follow(camFollow, null, 0.15);

@@ -545,7 +545,7 @@ class PlayState extends MusicBeatSubState
 
   /**
    * The Psych-style song time text.
-   * Text only: no background image and no progress bar, just the elapsed time ("0:00").
+   * Text only: no background image and no progress bar, just the time left ("3:12" -> "0:00").
    */
   var timeTxt:FlxText;
 
@@ -2598,7 +2598,7 @@ class PlayState extends MusicBeatSubState
      */
   /**
    * Updates the Psych-style song time text.
-   * Displays the elapsed song time counting up from "0:00" (text only, no bar).
+   * Displays the time REMAINING, counting down to "0:00" (text only, no bar).
    */
   function updateTimeText():Void
   {
@@ -2606,11 +2606,11 @@ class PlayState extends MusicBeatSubState
 
     final elapsedMs:Float = Math.max(0, Conductor.instance.songPosition);
 
-    // Clamp to the song length when it is known; don't freeze at 0:00 if it isn't.
-    var maxMs:Float = currentSongLengthMs;
-    if (maxMs <= 0) maxMs = elapsedMs;
+    // Unknown song length: fall back to showing elapsed time instead of a bogus countdown.
+    final maxMs:Float = currentSongLengthMs;
+    final remainingMs:Float = maxMs > 0 ? Math.max(0, maxMs - elapsedMs) : elapsedMs;
 
-    final secondsTotal:Int = Math.floor(Math.min(elapsedMs, maxMs) / 1000);
+    final secondsTotal:Int = Math.floor(remainingMs / 1000);
     final newText:String = FlxStringUtil.formatTime(secondsTotal, false);
     if (newText != timeTxt.text) timeTxt.text = newText;
   }

@@ -13,6 +13,7 @@ import flixel.math.FlxPoint;
 import flixel.sound.FlxSound;
 import flixel.text.FlxBitmapFont;
 import flixel.text.FlxBitmapText;
+import flixel.text.FlxText;
 import flixel.tweens.FlxTween;
 import flixel.tweens.FlxEase;
 import flixel.ui.FlxBar;
@@ -551,6 +552,12 @@ class PlayState extends MusicBeatSubState
   var scoreText:FlxBitmapText;
 
   /**
+   * The Psych-style song time text.
+   * Text only: no background image and no progress bar, just the elapsed time ("0:00").
+   */
+  var timeTxt:FlxText;
+
+  /**
    * The bar which displays the player's health.
    * Dynamically updated based on the value of `healthLerp` (which is based on `health`).
    */
@@ -809,6 +816,17 @@ class PlayState extends MusicBeatSubState
     healthBar = new FlxBar(0, 0, RIGHT_TO_LEFT, Std.int(healthBarBG.width - 8), Std.int(healthBarBG.height - 8), null, 0, 2);
     scoreText = new FlxBitmapText(0, 0, '', FlxBitmapFont.fromAngelCode(Paths.font("vcr-bmp.png"), Paths.font("vcr-bmp.fnt")));
 
+    // Psych-style song time text (text only, no background/bar).
+    timeTxt = new FlxText(0, 19, FlxG.width, '0:00', 32);
+    timeTxt.font = Paths.font('vcr.ttf');
+    timeTxt.size = 32;
+    timeTxt.color = FlxColor.WHITE;
+    timeTxt.alignment = CENTER;
+    timeTxt.borderStyle = OUTLINE;
+    timeTxt.borderColor = FlxColor.BLACK;
+    timeTxt.borderSize = 2;
+    timeTxt.scrollFactor.set();
+
     // Combo & Pop Up
     comboPopUps = new PopUpStuff(noteStyle);
 
@@ -883,6 +901,13 @@ class PlayState extends MusicBeatSubState
     // The song is now loaded. We can continue to initialize the play state.
     initCameras();
     initHealthBar();
+
+    // Attach the Psych-style song time text to the HUD.
+    timeTxt.y = Preferences.downscroll ? FlxG.height - 44 : 19;
+    timeTxt.zIndex = 803;
+    add(timeTxt);
+    timeTxt.cameras = [camHUD];
+
     if (!isMinimalMode)
     {
       initStage();
@@ -1034,6 +1059,7 @@ class PlayState extends MusicBeatSubState
 
     updateHealthBar();
     updateScoreText();
+    updateTimeText();
 
     // Handle restarting the song when needed (player death or pressing Retry)
     if (needsReset)
@@ -2772,6 +2798,25 @@ class PlayState extends MusicBeatSubState
   /**
      * Updates the values of the health bar.
      */
+  /**
+   * Updates the Psych-style song time text.
+   * Displays the elapsed song time counting up from "0:00" (text only, no bar).
+   */
+  function updateTimeText():Void
+  {
+    if (timeTxt == null) return;
+
+    final elapsedMs:Float = Math.max(0, Conductor.instance.songPosition);
+
+    // Clamp to the song length when it is known; don't freeze at 0:00 if it isn't.
+    var maxMs:Float = currentSongLengthMs;
+    if (maxMs <= 0) maxMs = elapsedMs;
+
+    final secondsTotal:Int = Math.floor(Math.min(elapsedMs, maxMs) / 1000);
+    final newText:String = FlxStringUtil.formatTime(secondsTotal, false);
+    if (newText != timeTxt.text) timeTxt.text = newText;
+  }
+
   function updateHealthBar():Void
   {
     if (isBotPlayMode)

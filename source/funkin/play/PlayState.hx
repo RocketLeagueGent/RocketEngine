@@ -81,9 +81,6 @@ import funkin.mobile.ui.FunkinHitbox.FunkinHitboxControlSchemes;
 import funkin.mobile.util.AdMobUtil;
 #end
 #end
-  #if FEATURE_DISCORD_RPC
-  import funkin.api.discord.DiscordClient;
-  #end
 
   /**
    * Parameters used to initialize the PlayState.
@@ -538,11 +535,6 @@ class PlayState extends MusicBeatSubState
    */
   public var vocals:Null<VoicesGroup>;
 
-  #if FEATURE_DISCORD_RPC
-  // Discord RPC variables
-  var discordRPCAlbum:String = '';
-  var discordRPCIcon:String = '';
-  #end
   /**
    * RENDER OBJECTS
    */
@@ -947,11 +939,6 @@ class PlayState extends MusicBeatSubState
     }
     #end
 
-    #if FEATURE_DISCORD_RPC
-    // Initialize Discord Rich Presence.
-    initDiscord();
-    #end
-
     // Read the song's note data and pass it to the strumlines.
     generateSong();
 
@@ -1326,15 +1313,6 @@ class PlayState extends MusicBeatSubState
           moveToGameOver();
         }
 
-        #if FEATURE_DISCORD_RPC
-        DiscordClient.instance.setPresence({
-          details: 'Game Over - ${buildDiscordRPCDetails()}',
-          state: buildDiscordRPCState(),
-
-          largeImageKey: discordRPCAlbum,
-          smallImageKey: discordRPCIcon
-        });
-        #end
       }
       else if (isPlayerDying)
       {
@@ -1421,15 +1399,6 @@ class PlayState extends MusicBeatSubState
 
             openPauseSubState(isChartingMode ? Charting : Standard, camPause, lostFocus);
           }
-
-          #if FEATURE_DISCORD_RPC
-          DiscordClient.instance.setPresence({
-            details: 'Paused - ${buildDiscordRPCDetails()}',
-            state: buildDiscordRPCState(),
-            largeImageKey: discordRPCAlbum,
-            smallImageKey: discordRPCIcon
-          });
-          #end
         }
     }
   }
@@ -1717,31 +1686,6 @@ class PlayState extends MusicBeatSubState
       // Resume the countdown.
       Countdown.resumeCountdown();
 
-      #if FEATURE_DISCORD_RPC
-      if (Conductor.instance.songPosition > 0)
-      {
-        // DiscordClient.changePresence(detailsText, '${currentChart.songName} ($discordRPCDifficulty)', discordRPCIcon, true,
-        //   currentSongLengthMs - Conductor.instance.songPosition);
-        DiscordClient.instance.setPresence({
-          state: buildDiscordRPCState(),
-          details: buildDiscordRPCDetails(),
-
-          largeImageKey: discordRPCAlbum,
-          smallImageKey: discordRPCIcon
-        });
-      }
-      else
-      {
-        DiscordClient.instance.setPresence({
-          state: buildDiscordRPCState(),
-          details: buildDiscordRPCDetails(),
-
-          largeImageKey: discordRPCAlbum,
-          smallImageKey: discordRPCIcon
-        });
-      }
-      #end
-
       justUnpaused = true;
     }
     isGameOverState = false;
@@ -1759,34 +1703,6 @@ class PlayState extends MusicBeatSubState
     else if (Preferences.autoPause) VideoCutscene.resumeVideo();
     #end
 
-    #if FEATURE_DISCORD_RPC
-    if (health > Constants.HEALTH_MIN && !isGamePaused && Preferences.autoPause)
-    {
-      if (Conductor.instance.songPosition > 0.0)
-      {
-        DiscordClient.instance.setPresence({
-          state: buildDiscordRPCState(),
-          details: buildDiscordRPCDetails(),
-
-          largeImageKey: discordRPCAlbum,
-          smallImageKey: discordRPCIcon
-        });
-      }
-      else
-      {
-        DiscordClient.instance.setPresence({
-          state: buildDiscordRPCState(),
-          details: buildDiscordRPCDetails(),
-
-          largeImageKey: discordRPCAlbum,
-          smallImageKey: discordRPCIcon
-        });
-        // DiscordClient.changePresence(detailsText, '${currentChart.songName} ($discordRPCDifficulty)', discordRPCIcon, true,
-        //   currentSongLengthMs - Conductor.instance.songPosition);
-      }
-    }
-    #end
-
     super.onFocus();
   }
 
@@ -1797,19 +1713,6 @@ class PlayState extends MusicBeatSubState
   {
     #if html5
     if (Preferences.autoPause) VideoCutscene.pauseVideo();
-    #end
-
-    #if FEATURE_DISCORD_RPC
-    if (health > Constants.HEALTH_MIN && !isGamePaused && Preferences.autoPause)
-    {
-      DiscordClient.instance.setPresence({
-        state: buildDiscordRPCState(),
-        details: buildDiscordRPCDetails(),
-
-        largeImageKey: discordRPCAlbum,
-        smallImageKey: discordRPCIcon
-      });
-    }
     #end
 
     // if else if else if else if else if else AAAAAAAAAAAAAAAAAAAAAAA
@@ -2179,23 +2082,6 @@ class PlayState extends MusicBeatSubState
       iconP2.zIndex = 850;
       add(iconP2);
       iconP2.cameras = [camHUD];
-
-      #if FEATURE_DISCORD_RPC
-      if (currentSong.isDiscordRPCAnonymous())
-      {
-        discordRPCAlbum = 'album-volume1';
-        discordRPCIcon = 'icon-face';
-      }
-      else
-      {
-        var albumEntry:Null<funkin.ui.freeplay.Album> = funkin.data.freeplay.album.AlbumRegistry.instance.fetchEntry(currentChart?.album ?? '');
-        var album:Null<String> = albumEntry?.getDiscordRPCImage() ?? (currentChart?.album ?? '');
-        var icon:Null<String> = currentChart?.discordRPCImage ?? 'icon-${dad.getHealthIconId()}';
-
-        discordRPCAlbum = album;
-        discordRPCIcon = icon;
-      }
-      #end
     }
 
     //
@@ -2420,82 +2306,6 @@ class PlayState extends MusicBeatSubState
     comboPopUps.zIndex = 900;
     add(comboPopUps);
     comboPopUps.cameras = [camHUD];
-  }
-
-  /**
-     * Initializes the Discord Rich Presence.
-     */
-  function initDiscord():Void
-  {
-    #if FEATURE_DISCORD_RPC
-    // Determine the details strings once and reuse them.
-
-    // Updating Discord Rich Presence.
-    DiscordClient.instance.setPresence({
-      state: buildDiscordRPCState(),
-      details: buildDiscordRPCDetails(),
-
-      largeImageKey: discordRPCAlbum,
-      smallImageKey: discordRPCIcon
-    });
-    #end
-
-    #if FEATURE_DISCORD_RPC
-    // Updating Discord Rich Presence.
-    DiscordClient.instance.setPresence({
-      state: buildDiscordRPCState(),
-      details: buildDiscordRPCDetails(),
-      largeImageKey: discordRPCAlbum,
-      smallImageKey: discordRPCIcon
-    });
-    #end
-  }
-
-  function buildDiscordRPCDetails():String
-  {
-    if (currentSong.isDiscordRPCAnonymous())
-    {
-      return 'In Game';
-    }
-
-    if (PlayStatePlaylist.isStoryMode)
-    {
-      return 'Story Mode: ${PlayStatePlaylist.campaignTitle}';
-    }
-    else
-    {
-      if (isChartingMode)
-      {
-        return 'Chart Editor [Playtest]';
-      }
-      else if (isPracticeMode)
-      {
-        return 'Freeplay [Practice]';
-      }
-      else if (isBotPlayMode)
-      {
-        return 'Freeplay [Bot Play]';
-      }
-      else
-      {
-        return 'Freeplay';
-      }
-    }
-  }
-
-  function buildDiscordRPCState():String
-  {
-    if (currentSong.isDiscordRPCAnonymous())
-    {
-      return '??? [???]';
-    }
-
-    if (currentChart == null)
-    {
-      trace('WARNING: Difficulty data for RPC is null.');
-    }
-    var discordRPCDifficulty = PlayState.instance?.currentDifficulty?.replace('-', ' ')?.toTitleCase() ?? '???';
-    return '${currentChart?.songName ?? '???'} [${discordRPCDifficulty}]';
   }
 
   function initPreciseInputs():Void
@@ -2729,18 +2539,6 @@ class PlayState extends MusicBeatSubState
     }
 
     FlxG.sound.music.play();
-
-    #if FEATURE_DISCORD_RPC
-    // Updating Discord Rich Presence (with Time Left)
-    DiscordClient.instance.setPresence({
-      state: buildDiscordRPCState(),
-      details: buildDiscordRPCDetails(),
-
-      largeImageKey: discordRPCAlbum,
-      smallImageKey: discordRPCIcon
-    });
-    // DiscordClient.changePresence(detailsText, '${currentChart.songName} ($discordRPCDifficulty)', discordRPCIcon, true, currentSongLengthMs);
-    #end
 
     if (startTimestamp > 0)
     {

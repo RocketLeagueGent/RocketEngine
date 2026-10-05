@@ -31,9 +31,6 @@ import funkin.save.Save;
 import funkin.ui.leaderboard.UsernamePromptState;
 import funkin.util.WindowUtil;
 import funkin.util.MathUtil;
-#if FEATURE_DISCORD_RPC
-import funkin.api.discord.DiscordClient;
-#end
 #if mobile
 import funkin.mobile.input.ControlsHandler;
 import funkin.mobile.util.InAppPurchasesUtil;
@@ -135,10 +132,6 @@ class MainMenuState extends MusicBeatState
 
   override function create():Void
   {
-    #if FEATURE_DISCORD_RPC
-    DiscordClient.instance.setPresence({state: "In the Menus", details: null});
-    #end
-
     FlxG.cameras.reset(new FunkinCamera('mainMenu'));
 
     transIn = FlxTransitionableState.defaultTransIn;
@@ -206,7 +199,7 @@ class MainMenuState extends MusicBeatState
     // Bottom-left version watermark, Psych style.
     var engineVer:FlxText = new FlxText(12, FlxG.height - 44, 0, '${Constants.TITLE} ${Constants.VERSION}', 12);
     engineVer.scrollFactor.set();
-    engineVer.setFormat(Paths.font('vcr.ttf'), 16, FlxColor.WHITE, FlxTextAlign.LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+    engineVer.setFormat(Paths.font(), 16, FlxColor.WHITE, FlxTextAlign.LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
     add(engineVer);
 
     changeItem();
@@ -249,15 +242,37 @@ class MainMenuState extends MusicBeatState
   }
 
   /**
-   * Build a Psych menu item from the `mainmenu/menu_<name>` sparrow atlas,
-   * with `'<name> idle'` / `'<name> selected'` animations.
+   * Logical menu option -> shipped atlas name in `assets/images/mainmenu`.
+   *
+   * The option ids drive routing in `confirmMenu`, so they aren't always the atlas
+   * names: Psych's `menu_*` atlases were never added to the assets repo, so we use
+   * the V-Slice art that does ship. `story_mode` is `storymode`, and there is no
+   * `achievements` art at all -- the `merch` atlas stands in for the left slot.
+   */
+  static function menuAtlasFor(option:String):String
+  {
+    switch (option)
+    {
+      case 'story_mode':
+        return 'storymode';
+      case 'achievements':
+        return 'merch';
+      default:
+        return option;
+    }
+  }
+
+  /**
+   * Build a Psych menu item from the `mainmenu/<atlas>` sparrow atlas,
+   * with `'<atlas> idle'` / `'<atlas> selected'` animations.
    */
   function createMenuItem(name:String, x:Float, y:Float):FlxSprite
   {
+    var atlas:String = menuAtlasFor(name);
     var menuItem:FlxSprite = new FlxSprite(x, y);
-    menuItem.frames = Paths.getSparrowAtlas('mainmenu/menu_$name');
-    menuItem.animation.addByPrefix('idle', '$name idle', 24, true);
-    menuItem.animation.addByPrefix('selected', '$name selected', 24, true);
+    menuItem.frames = Paths.getSparrowAtlas('mainmenu/$atlas');
+    menuItem.animation.addByPrefix('idle', '$atlas idle', 24, true);
+    menuItem.animation.addByPrefix('selected', '$atlas selected', 24, true);
     menuItem.animation.play('idle');
     menuItem.updateHitbox();
 

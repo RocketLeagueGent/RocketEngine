@@ -63,9 +63,6 @@ import funkin.ui.debug.charting.ChartEditorState;
 #if FEATURE_STAGE_EDITOR
 import funkin.ui.debug.stageeditor.StageEditorState;
 #end
-#if FEATURE_DISCORD_RPC
-import funkin.api.discord.DiscordClient;
-#end
 #if FEATURE_TOUCH_CONTROLS
 import funkin.util.TouchUtil;
 import funkin.util.SwipeUtil;
@@ -373,11 +370,6 @@ class FreeplayState extends MusicBeatSubState
         return FreeplayState.build(null, null);
       }
     }
-
-    #if FEATURE_DISCORD_RPC
-    // Updating Discord Rich Presence
-    DiscordClient.instance.setPresence({state: 'In the Menus', details: null});
-    #end
 
     // Block input until the intro finishes.
     uiStateMachine.transition(EnteringFreeplay);

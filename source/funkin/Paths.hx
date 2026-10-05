@@ -180,8 +180,23 @@ class Paths implements ConsoleClass
     return getPath('images/$key.png', IMAGE, library);
   }
 
-  public static function font(key:String):String
+  /**
+   * The font used for all UI text (`FlxText`), unless a specific font is requested.
+   *
+   * Must be a file in `assets/fonts`; the whole directory is embedded at build time
+   * by `project.hxp`, so new fonts need no build config changes.
+   */
+  public static final DEFAULT_FONT:String = 'phantommuff.ttf';
+
+  /**
+   * Resolves a font from `assets/fonts`.
+   *
+   * With no argument, returns the engine-wide default font (`DEFAULT_FONT`), so
+   * `setFormat(Paths.font(), ...)` is the normal way to style UI text.
+   */
+  public static function font(?key:String):String
   {
+    if (key == null) key = DEFAULT_FONT;
     return 'assets/fonts/$key';
   }
 

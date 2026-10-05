@@ -8,6 +8,7 @@ import flixel.FlxState;
 import flixel.graphics.FlxGraphic;
 import flixel.math.FlxPoint;
 import flixel.math.FlxRect;
+import flixel.system.FlxAssets;
 import flixel.system.debug.log.LogStyle;
 import flixel.util.FlxColor;
 import funkin.data.dialogue.ConversationRegistry;
@@ -38,9 +39,6 @@ import funkin.util.TrackerUtil;
 import funkin.util.WindowUtil;
 import openfl.display.BitmapData;
 import funkin.ui.debug.playtest.ChartPlaytestMenu;
-#if FEATURE_DISCORD_RPC
-import funkin.api.discord.DiscordClient;
-#end
 
 /**
  * A core class which performs initialization of the game.
@@ -146,6 +144,12 @@ class InitState extends FlxState
       // This ain't a pixel art game! (most of the time)
       FlxSprite.defaultAntialiasing = true;
 
+      // Fallback font for any FlxText that doesn't name one explicitly.
+      // Flixel defaults this to a system font ("Nokia Cellphone FC Small"), which isn't
+      // embedded and so doesn't match the game's look. FlxText resolves an asset path here
+      // just as well as a family name, so point it at our own default font.
+      FlxAssets.FONT_DEFAULT = Paths.font();
+
       // Disable default keybinds for volume (we manually control volume in MusicBeatState with custom binds)
       FlxG.sound.volumeUpKeys = [];
       FlxG.sound.volumeDownKeys = [];
@@ -211,20 +215,7 @@ class InitState extends FlxState
       });
       #end
 
-      //
-      // DISCORD API SETUP
-      //
-      #if FEATURE_DISCORD_RPC
-      if (Preferences.enabledDiscordRPC)
-      {
-        DiscordClient.instance.init();
-      }
 
-      lime.app.Application.current.onExit.add(function(exitCode)
-      {
-        DiscordClient.instance.shutdown();
-      });
-      #end
 
       #if FEATURE_LOST_FOCUS_VOLUME
       FlxG.signals.focusLost.add(onLostFocus);

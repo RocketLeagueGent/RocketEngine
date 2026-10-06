@@ -239,9 +239,9 @@ class MainMenuState extends MusicBeatState
    * Logical menu option -> shipped atlas name in `assets/images/mainmenu`.
    *
    * The option ids drive routing in `confirmMenu`, so they aren't always the atlas
-   * names: Psych's `menu_*` atlases were never added to the assets repo, so we use
-   * the V-Slice art that does ship. `story_mode` is `storymode`, and there is no
-   * `achievements` art at all -- the `merch` atlas stands in for the left slot.
+   * names: `story_mode` is `storymode`, the awards screen uses the `awards` atlas,
+   * and the options screen uses `menu_options` (which strips the `menu_` prefix for
+   * its animation names in `createMenuItem`).
    */
   static function menuAtlasFor(option:String):String
   {
@@ -250,7 +250,9 @@ class MainMenuState extends MusicBeatState
       case 'story_mode':
         return 'storymode';
       case 'achievements':
-        return 'merch';
+        return 'awards';
+      case 'options':
+        return 'menu_options';
       default:
         return option;
     }
@@ -258,15 +260,17 @@ class MainMenuState extends MusicBeatState
 
   /**
    * Build a Psych menu item from the `mainmenu/<atlas>` sparrow atlas,
-   * with `'<atlas> idle'` / `'<atlas> selected'` animations.
+   * with `'<prefix> idle'` / `'<prefix> selected'` animations.
+   * `menu_options` ships frames prefixed `options`, so strip a leading `menu_`.
    */
   function createMenuItem(name:String, x:Float, y:Float):FlxSprite
   {
     var atlas:String = menuAtlasFor(name);
+    var animPrefix:String = atlas.startsWith('menu_') ? atlas.substr(5) : atlas;
     var menuItem:FlxSprite = new FlxSprite(x, y);
     menuItem.frames = Paths.getSparrowAtlas('mainmenu/$atlas');
-    menuItem.animation.addByPrefix('idle', '$atlas idle', 24, true);
-    menuItem.animation.addByPrefix('selected', '$atlas selected', 24, true);
+    menuItem.animation.addByPrefix('idle', '$animPrefix idle', 24, true);
+    menuItem.animation.addByPrefix('selected', '$animPrefix selected', 24, true);
     menuItem.animation.play('idle');
     menuItem.updateHitbox();
 

@@ -2165,12 +2165,11 @@ class PlayState extends MusicBeatSubState
     {
       // Psych parity (Psych 1.0.4 PlayState.generateStaticArrows):
       // - player strums dead-center
-      // - opponent strums dimmed to 0.35
+      // - opponent strums stay fully visible (RocketEngine: no 0.35 alpha dim)
       // - opponent UP/RIGHT columns push right by width/2 + 15 so they frame
       //   the centered player strums at the right screen edge instead of
       //   overlapping them (LEFT/DOWN stay at the left edge).
       playerStrumline.x = (FlxG.width - playerStrumline.width) / 2;
-      opponentStrumline.alpha = 0.35;
       opponentStrumline.setColumnXOffset(NoteDirection.UP, (FlxG.width / 2) + 15);
       opponentStrumline.setColumnXOffset(NoteDirection.RIGHT, (FlxG.width / 2) + 15);
     }
@@ -3472,7 +3471,7 @@ class PlayState extends MusicBeatSubState
           {
             // no camFollow so it centers on horror tree
             var targetSong:Song = SongRegistry.instance.fetchEntry(targetSongId) ?? throw 'Could not find a song with the ID $targetSongId';
-            targetSong.ensureFallbackErectDifficulties();
+            targetSong.ensureFallbackDifficulties();
             var targetVariation:String = currentVariation;
             if (!targetSong.hasDifficulty(PlayStatePlaylist.campaignDifficulty, currentVariation))
             {
@@ -3491,7 +3490,7 @@ class PlayState extends MusicBeatSubState
         {
           var targetSong:Song = SongRegistry.instance.fetchEntry(targetSongId,
             {variation: currentVariation}) ?? throw 'Could not find a song with ID $targetSongId';
-          targetSong.ensureFallbackErectDifficulties();
+          targetSong.ensureFallbackDifficulties();
           var targetVariation:String = currentVariation;
           if (!targetSong.hasDifficulty(PlayStatePlaylist.campaignDifficulty, currentVariation))
           {

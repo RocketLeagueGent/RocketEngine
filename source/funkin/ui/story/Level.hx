@@ -201,6 +201,29 @@ class Level implements IRegistryEntry<LevelData>
       }
     }
 
+    // Erect/Nightmare are only shipped for some songs (`*-metadata-erect.json`),
+    // so the strict intersection above would drop them for most weeks. If ANY song
+    // in the week provides them, offer them; songs lacking the variation fall back
+    // at play time via Song.ensureFallbackDifficulties.
+    for (extraDifficulty in ['erect', 'nightmare'])
+    {
+      if (difficulties.contains(extraDifficulty)) continue;
+
+      for (songId in songList)
+      {
+        var song:Song = SongRegistry.instance.fetchEntry(songId, {variation: Constants.DEFAULT_VARIATION});
+
+        if (song != null && song.hasDifficulty(extraDifficulty, [Constants.DEFAULT_VARIATION, 'erect']))
+        {
+          difficulties.push(extraDifficulty);
+          break;
+        }
+      }
+    }
+
+    // Union additions above were pushed out of sorted order.
+    difficulties.sort(SortUtil.defaultsThenAlphabetically.bind(Constants.DEFAULT_DIFFICULTY_LIST));
+
     if (difficulties.length == 0) difficulties = ['normal'];
 
     return difficulties;

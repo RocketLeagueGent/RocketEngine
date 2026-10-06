@@ -16,6 +16,7 @@ import funkin.audio.FunkinSound;
 import funkin.ui.mainmenu.MainMenuState;
 import funkin.ui.MusicBeatState;
 import funkin.ui.leaderboard.UsernamePromptState;
+import funkin.save.Save;
 import funkin.graphics.shaders.HSVShader;
 import funkin.input.Controls;
 #if mobile
@@ -218,19 +219,24 @@ class OptionsMenu extends Page<OptionsMenuPageName>
     #end
 
     #if !html5
-    createItem('CHANGE USERNAME', function()
+    // Only offer the manual fallback when no username is set yet (the first-launch
+    // prompt normally handles this; hides the dead-end entry for everyone else).
+    if ((Save.instance.leaderboardUsername.value ?? '').trim().length == 0)
     {
-      // Pause the options menu behind the prompt (OptionsState runs with
-      // persistentUpdate = true, so the TextMenuList would otherwise keep
-      // consuming UP/DOWN/ENTER while typing).
-      FlxG.state.persistentUpdate = false;
-      var prompt = new UsernamePromptState();
-      prompt.closeCallback = function()
+      createItem('CHANGE USERNAME', function()
       {
-        FlxG.state.persistentUpdate = true;
-      };
-      FlxG.state.openSubState(prompt);
-    });
+        // Pause the options menu behind the prompt (OptionsState runs with
+        // persistentUpdate = true, so the TextMenuList would otherwise keep
+        // consuming UP/DOWN/ENTER while typing).
+        FlxG.state.persistentUpdate = false;
+        var prompt = new UsernamePromptState();
+        prompt.closeCallback = function()
+        {
+          FlxG.state.persistentUpdate = true;
+        };
+        FlxG.state.openSubState(prompt);
+      });
+    }
     #end
 
     // Create an object for the camera to track.

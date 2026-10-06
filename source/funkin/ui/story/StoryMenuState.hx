@@ -165,11 +165,15 @@ class StoryMenuState extends MusicBeatState
 
     updateProps();
 
-    // x on tracklistText is set/updated later, we dont need to init it
-    tracklistText = new FlxText(0, levelBackground.x + levelBackground.height + 100, 0, 'Tracks', 32);
+    // x on tracklistText is set/updated later, we dont need to init it.
+    // Sit just below the level background (was levelBackground.x — an x/y typo).
+    tracklistText = new FlxText(0, levelBackground.y + levelBackground.height + 10, 0, 'Tracks', 32);
     tracklistText.setFormat('PhantomMuff 1.5 Plus', 32);
     tracklistText.alignment = CENTER;
     tracklistText.color = 0xFFE55777;
+    // Above the black band (99) and background (100) so a bottom-clamped tracklist
+    // stays readable; below level props (1000).
+    tracklistText.zIndex = 501;
     add(tracklistText);
 
     scoreText = new FlxText(Math.max(FullScreenScaleMode.gameNotchSize.x, 10), 10, 0, 'HIGH SCORE: 42069420');
@@ -483,14 +487,8 @@ class StoryMenuState extends MusicBeatState
     updateBackground(previousLevelId);
     updateProps();
 
-    // RocketEngine: switching weeks while on Erect/Nightmare drops you back to Hard.
-    if (currentIndex != prevIndex && (currentDifficultyId == 'erect' || currentDifficultyId == 'nightmare'))
-    {
-      currentDifficultyId = 'hard';
-      rememberedDifficulty = 'hard';
-      buildDifficultySprite('hard');
-      updateText();
-    }
+    // RocketEngine: the full difficulty list is always offered (see changeDifficulty),
+    // so there is nothing to drop when switching weeks — the selected difficulty sticks.
 
     refresh();
   }
@@ -501,10 +499,13 @@ class StoryMenuState extends MusicBeatState
    */
   function changeDifficulty(change:Int = 0):Void
   {
-    // Level.getDifficulties() already restricts Erect/Nightmare to weeks where
-    // every song provides those difficulties, so the full list is safe to show.
-    var difficultyList:Array<String> = currentLevel.getDifficulties();
+    // RocketEngine: Story Mode always offers the full difficulty set, regardless of
+    // what the week's songs declare. Missing Erect/Nightmare (or even easy/normal/hard)
+    // charts are fabricated at play time by Song.ensureFallbackDifficulties(), so every
+    // combination stays playable.
+    var difficultyList:Array<String> = Constants.DEFAULT_DIFFICULTY_LIST_FULL;
     var currentIndex:Int = difficultyList.indexOf(currentDifficultyId);
+    if (currentIndex < 0) currentIndex = difficultyList.indexOf(Constants.DEFAULT_DIFFICULTY);
 
     currentIndex += change;
 
@@ -598,9 +599,9 @@ class StoryMenuState extends MusicBeatState
     var targetSongId:String = PlayStatePlaylist.playlistSongIds.shift();
 
     var targetSong:Song = SongRegistry.instance.fetchEntry(targetSongId, {variation: Constants.DEFAULT_VARIATION});
-    // RocketEngine: fabricate Erect/Nightmare if this song lacks Erect metadata,
-    // so Story Mode can launch those difficulties on any week.
-    targetSong?.ensureFallbackErectDifficulties();
+    // RocketEngine: fabricate any missing difficulties (Erect/Nightmare, or
+    // easy/normal/hard on hard-only songs) so Story Mode can launch all of them.
+    targetSong?.ensureFallbackDifficulties();
 
     PlayStatePlaylist.campaignId = currentLevel.id;
     PlayStatePlaylist.campaignTitle = currentLevel.getTitle();
@@ -618,6 +619,14 @@ class StoryMenuState extends MusicBeatState
       FlxTransitionableState.skipNextTransOut = false;
 
       var targetVariation:String = targetSong.getFirstValidVariation(PlayStatePlaylist.campaignDifficulty);
+      // Fabricated Erect/Nightmare difficulties (songs with no erect metadata on disk)
+      // live under the 'erect' variation, which isn't in `variations`, so
+      // getFirstValidVariation() can't find them — check the difficulties map directly.
+      if (targetVariation == null && targetSong.hasDifficulty(PlayStatePlaylist.campaignDifficulty, 'erect'))
+      {
+        targetVariation = 'erect';
+      }
+      if (targetVariation == null) targetVariation = Constants.DEFAULT_VARIATION;
       // Resolve the instrumental too: Erect songs carry Inst-erect via characters.instrumental.
       var targetInstId:String = targetSong.getBaseInstrumentalId(PlayStatePlaylist.campaignDifficulty,
         targetSong.getDifficulty(PlayStatePlaylist.campaignDifficulty, targetVariation)?.variation ?? targetVariation);
@@ -645,6 +654,14 @@ class StoryMenuState extends MusicBeatState
       levelBackground.zIndex = 100;
       levelBackground.alpha = 1.0; // Not hidden.
       add(levelBackground);
+    }
+    else if (previousLevelId == currentLevelId)
+    {
+      // Same level selected (initial create, or wrapping a single-week list).
+      // The old and new backgrounds are identical, so skip the crossfade entirely.
+      // Crossfading here would add a duplicate background after the final refresh(),
+      // then remove the old one 0.6s later (post-refresh null hole), which could
+      // reorder members and push level props behind the background.
     }
     else
     {
@@ -678,7 +695,11 @@ class StoryMenuState extends MusicBeatState
           ease: FlxEase.linear,
           onComplete: function(_)
           {
-            remove(oldBackground);
+            // Splice (not default remove) so no null hole is left in members —
+            // any add() after this would otherwise fill that hole at index 0 and
+            // a later refresh() would leave level props behind the background.
+            remove(oldBackground, true);
+            refresh();
           }
         });
 
@@ -716,6 +737,11 @@ class StoryMenuState extends MusicBeatState
 
     tracklistText.screenCenter(X);
     tracklistText.x -= (FlxG.width * 0.33);
+
+    // Keep long tracklists (4+ songs) on screen: clamp the bottom edge to the
+    // window instead of letting it run past the bottom of the screen.
+    final baseY:Float = levelBackground.y + levelBackground.height + 10;
+    tracklistText.y = Math.min(baseY, FlxG.height - tracklistText.height - 12);
 
     var levelScore:Null<SaveScoreData> = Save.instance.getLevelScore(currentLevelId, currentDifficultyId);
     highScore = levelScore?.score ?? 0;

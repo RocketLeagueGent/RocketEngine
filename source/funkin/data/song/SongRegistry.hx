@@ -36,7 +36,7 @@ class SongRegistry extends BaseRegistry<Song, SongMetadata, SongEntryParams> imp
 
   static function get_DEFAULT_GENERATEDBY():String
   {
-    return '${Constants.TITLE} - ${Constants.VERSION}';
+    return Constants.GENERATED_BY;
   }
 
   public function new()

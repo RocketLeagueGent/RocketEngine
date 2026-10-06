@@ -66,10 +66,11 @@ class FunkinMemory
     // and made menu transitions take seconds. Keep the menu layer resident.
     permanentCacheTexture(Paths.image('menuBG'));
 
-    // Main menu item atlases (story_mode, freeplay, credits, achievements, options).
-    for (menuItem in ['story_mode', 'freeplay', 'credits', 'achievements', 'options'])
+    // Main menu item atlases as MainMenuState resolves them
+    // (story_mode -> storymode, achievements -> awards, options -> menu_options).
+    for (menuItem in ['storymode', 'freeplay', 'credits', 'awards', 'menu_options'])
     {
-      permanentCacheTexture(Paths.image('mainmenu/menu_${menuItem}'));
+      permanentCacheTexture(Paths.image('mainmenu/$menuItem'));
     }
 
     // Freeplay static layer: selector, capsule kit, score/clear UI, transitions,

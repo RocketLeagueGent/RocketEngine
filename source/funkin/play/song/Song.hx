@@ -363,43 +363,64 @@ class Song implements IPlayStateScriptedClass implements IRegistryEntry<SongMeta
       applyChartData(chart, vari);
     }
 
-    // RocketEngine: fill Story Mode fallback Erect difficulties (songs with no
-    // Erect chart on disk) with the default variation's hardest chart, so they
-    // remain playable end-to-end.
-    if (difficulties.exists('erect') && !_metadata.exists('erect'))
+    // RocketEngine: fill fabricated fallback difficulties (no chart file on disk)
+    // with an available chart, so every Story Mode difficulty stays playable.
+    // Prefer the same difficulty in the default variation, then its hardest chart,
+    // then the same difficulty in any other variation.
+    var defaultMap:Null<Map<String, SongDifficulty>> = difficulties.get(Constants.DEFAULT_VARIATION);
+    for (fallbackMap in difficulties)
     {
-      var fallbackMap:Null<Map<String, SongDifficulty>> = difficulties.get('erect');
-      var defaultMap:Null<Map<String, SongDifficulty>> = difficulties.get(Constants.DEFAULT_VARIATION);
-      var source:Null<SongDifficulty> = null;
-      if (defaultMap != null)
+      for (fake in fallbackMap)
       {
-        for (candidate in ['hard', 'normal', 'easy'])
+        if (fake == null || fake.notes != null) continue;
+
+        var source:Null<SongDifficulty> = null;
+        if (defaultMap != null)
         {
-          var candidateDiff:Null<SongDifficulty> = defaultMap.get(candidate);
-          if (candidateDiff != null && candidateDiff.notes != null)
+          var sameDiff:Null<SongDifficulty> = defaultMap.get(fake.difficulty);
+          if (sameDiff != null && sameDiff != fake && sameDiff.notes != null) source = sameDiff;
+
+          if (source == null)
           {
-            source = candidateDiff;
-            break;
+            for (candidate in ['hard', 'normal', 'easy'])
+            {
+              var candidateDiff:Null<SongDifficulty> = defaultMap.get(candidate);
+              if (candidateDiff != null && candidateDiff != fake && candidateDiff.notes != null)
+              {
+                source = candidateDiff;
+                break;
+              }
+            }
+          }
+
+          if (source == null)
+          {
+            for (candidateDiff in defaultMap)
+            {
+              if (candidateDiff != null && candidateDiff != fake && candidateDiff.notes != null)
+              {
+                source = candidateDiff;
+                break;
+              }
+            }
           }
         }
+
         if (source == null)
         {
-          for (candidateDiff in defaultMap)
+          for (otherMap in difficulties)
           {
-            if (candidateDiff != null && candidateDiff.notes != null)
+            var other:Null<SongDifficulty> = otherMap.get(fake.difficulty);
+            if (other != null && other != fake && other.notes != null)
             {
-              source = candidateDiff;
+              source = other;
               break;
             }
           }
         }
-      }
-      if (source != null && fallbackMap != null)
-      {
-        for (diffId in fallbackMap.keys())
+
+        if (source != null)
         {
-          var fake:Null<SongDifficulty> = fallbackMap.get(diffId);
-          if (fake == null || fake.notes != null) continue;
           fake.notes = source.notes;
           fake.events = source.events;
           fake.scrollSpeed = source.scrollSpeed;
@@ -467,40 +488,84 @@ class Song implements IPlayStateScriptedClass implements IRegistryEntry<SongMeta
    * If this song has no Erect variation metadata on disk, fabricate `erect` and
    * `nightmare` difficulties under the `erect` variation using the default
    * variation's metadata. Chart notes are filled in later by `cacheCharts()` from
-   * the default variation's hardest chart. This lets every week (except SP. COLLAB 1)
-   * offer Erect/Nightmare difficulties even where base assets lack them.
-   * Idempotent: does nothing if the song already has real Erect difficulties.
+   * the default variation's hardest chart. This lets every week offer
+   * Erect/Nightmare difficulties even where base assets lack them.
+   * Also fabricates any of `easy`/`normal`/`hard` missing from every variation
+   * (e.g. hard-only mod songs), since Story Mode always offers the full difficulty
+   * list. Idempotent: does nothing for difficulties that already exist.
    */
-  public function ensureFallbackErectDifficulties():Void
+  public function ensureFallbackDifficulties():Void
   {
-    if (difficulties.exists('erect')) return;
-
     var defaultMeta:Null<SongMetadata> = _metadata.get(Constants.DEFAULT_VARIATION);
     if (defaultMeta == null) return;
 
-    var fallbackMap:Map<String, SongDifficulty> = [];
-    for (diffId in ['erect', 'nightmare'])
+    if (!difficulties.exists('erect'))
     {
-      var difficulty:SongDifficulty = new SongDifficulty(this, diffId, 'erect');
-      difficulty.songName = defaultMeta.songName;
-      difficulty.songArtist = defaultMeta.artist;
-      difficulty.charter = defaultMeta.charter ?? Constants.DEFAULT_CHARTER;
-      difficulty.timeFormat = defaultMeta.timeFormat;
-      difficulty.divisions = defaultMeta.divisions;
-      difficulty.looped = defaultMeta.looped;
-      difficulty.generatedBy = defaultMeta.generatedBy;
-      difficulty.offsets = defaultMeta?.offsets ?? new SongOffsets();
-      difficulty.timeChanges = defaultMeta.timeChanges;
-      difficulty.difficultyRating = defaultMeta.playData?.ratings?.get(diffId) ?? 0;
-      difficulty.album = defaultMeta.playData?.album ?? '';
-      difficulty.stickerPack = defaultMeta.playData?.stickerPack ?? '';
-      difficulty.stage = defaultMeta.playData?.stage ?? Constants.DEFAULT_STAGE;
-      difficulty.noteStyle = defaultMeta.playData?.noteStyle ?? Constants.DEFAULT_NOTE_STYLE;
-      difficulty.characters = defaultMeta.playData?.characters ?? new SongCharacterData();
-      fallbackMap.set(diffId, difficulty);
+      var fallbackMap:Map<String, SongDifficulty> = [];
+      for (diffId in ['erect', 'nightmare'])
+      {
+        fallbackMap.set(diffId, buildFabricatedDifficulty(diffId, 'erect', defaultMeta));
+      }
+      difficulties.set('erect', fallbackMap);
+      log('Fabricated fallback Erect/Nightmare difficulties for "$id".');
     }
-    difficulties.set('erect', fallbackMap);
-    log('Fabricated fallback Erect/Nightmare difficulties for "$id".');
+    else
+    {
+      // Real Erect metadata normally lists both; fabricate `nightmare` if a mod omitted it.
+      var erectMap:Null<Map<String, SongDifficulty>> = difficulties.get('erect');
+      if (erectMap != null && !erectMap.exists('nightmare'))
+      {
+        erectMap.set('nightmare', buildFabricatedDifficulty('nightmare', 'erect', defaultMeta));
+        log('Fabricated fallback Nightmare difficulty for "$id".');
+      }
+    }
+
+    var defaultMap:Null<Map<String, SongDifficulty>> = difficulties.get(Constants.DEFAULT_VARIATION);
+    if (defaultMap != null)
+    {
+      for (diffId in ['easy', 'normal', 'hard'])
+      {
+        var existsSomewhere:Bool = false;
+        for (variationMap in difficulties)
+        {
+          if (variationMap.exists(diffId))
+          {
+            existsSomewhere = true;
+            break;
+          }
+        }
+        if (!existsSomewhere)
+        {
+          defaultMap.set(diffId, buildFabricatedDifficulty(diffId, Constants.DEFAULT_VARIATION, defaultMeta));
+          log('Fabricated fallback "$diffId" difficulty for "$id".');
+        }
+      }
+    }
+  }
+
+  /**
+   * Build a playable-but-fabricated difficulty from the default variation's metadata.
+   * Chart notes are filled in later by `cacheCharts()`.
+   */
+  function buildFabricatedDifficulty(diffId:String, variationId:String, defaultMeta:SongMetadata):SongDifficulty
+  {
+    var difficulty:SongDifficulty = new SongDifficulty(this, diffId, variationId);
+    difficulty.songName = defaultMeta.songName;
+    difficulty.songArtist = defaultMeta.artist;
+    difficulty.charter = defaultMeta.charter ?? Constants.DEFAULT_CHARTER;
+    difficulty.timeFormat = defaultMeta.timeFormat;
+    difficulty.divisions = defaultMeta.divisions;
+    difficulty.looped = defaultMeta.looped;
+    difficulty.generatedBy = defaultMeta.generatedBy;
+    difficulty.offsets = defaultMeta?.offsets ?? new SongOffsets();
+    difficulty.timeChanges = defaultMeta.timeChanges;
+    difficulty.difficultyRating = defaultMeta.playData?.ratings?.get(diffId) ?? 0;
+    difficulty.album = defaultMeta.playData?.album ?? '';
+    difficulty.stickerPack = defaultMeta.playData?.stickerPack ?? '';
+    difficulty.stage = defaultMeta.playData?.stage ?? Constants.DEFAULT_STAGE;
+    difficulty.noteStyle = defaultMeta.playData?.noteStyle ?? Constants.DEFAULT_NOTE_STYLE;
+    difficulty.characters = defaultMeta.playData?.characters ?? new SongCharacterData();
+    return difficulty;
   }
 
   public function getDifficulty(?diffId:String, ?variation:String, ?variations:Array<String>):Null<SongDifficulty>

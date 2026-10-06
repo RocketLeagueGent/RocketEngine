@@ -34,7 +34,7 @@ class Constants
 
   static function get_GENERATED_BY():String
   {
-    return '${Constants.TITLE} - ${Constants.VERSION}';
+    return Constants.VERSION;
   }
 
   /**
@@ -43,17 +43,10 @@ class Constants
    */
   public static final VERSION_SUFFIX:String = #if FEATURE_DEBUG_FUNCTIONS ' PROTOTYPE' #else '' #end;
 
-  #if FEATURE_DEBUG_FUNCTIONS
   static function get_VERSION():String
   {
-    return 'v${Application.current.meta.get('version')} (${GIT_BRANCH} : ${GIT_HASH}${GIT_HAS_LOCAL_CHANGES ? ' : MODIFIED' : ''})' + VERSION_SUFFIX;
+    return "Friday Night Funkin' Rocket Engine ALPHA";
   }
-  #else
-  static function get_VERSION():String
-  {
-    return 'v${Application.current.meta.get('version')}' + VERSION_SUFFIX;
-  }
-  #end
 
   /**
    * Whether or not the game is a debug build.

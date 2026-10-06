@@ -567,7 +567,7 @@ class Project extends HXProject
   function flair()
   {
     // TODO: Implement this.
-    info("Friday Night Funkin' - " + VERSION);
+    info("Friday Night Funkin' Rocket Engine ALPHA");
     info("Initializing build...");
 
     info("Git Branch:     " + getGitBranch());

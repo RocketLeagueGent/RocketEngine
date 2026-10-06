@@ -9,6 +9,8 @@ import openfl.system.System;
 import openfl.media.Sound;
 import lime.app.Future;
 import lime.app.Promise;
+import funkin.audio.AudioCache;
+import funkin.graphics.GPUBitmap;
 
 /**
  * Handles caching of textures and sounds for the game.
@@ -172,6 +174,8 @@ class FunkinMemory
       return;
     }
 
+    GPUBitmap.toGPU(graphic); // Stage3D: drop the system-RAM copy once uploaded (no-op on html5).
+
     log('Cached asset $key');
     graphic.persist = true;
     currentCachedTextures.set(key, graphic);
@@ -192,6 +196,8 @@ class FunkinMemory
       FlxG.log.warn('Failed to cache graphic: $key');
       return;
     }
+
+    GPUBitmap.toGPU(graphic); // Stage3D: drop the system-RAM copy once uploaded (no-op on html5).
 
     log('Cached graphic $key');
     graphic.persist = true;
@@ -477,6 +483,9 @@ class FunkinMemory
     }
     Assets.cache.clear('songs');
     Assets.cache.clear('music');
+    // Evict Sounds flixel cached through Paths but that never entered our maps
+    // (FPS Plus AudioCache). Permanent keys — freakyMenu, menu SFX — stay resident.
+    AudioCache.clear(k -> permanentCachedSounds.exists(k));
     // Felt lazy.
     var key = Paths.music('freakyMenu/freakyMenu');
     var sound:Null<Sound> = Assets.getSound(key, true);

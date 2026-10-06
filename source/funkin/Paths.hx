@@ -2,6 +2,7 @@ package funkin;
 
 import flixel.graphics.frames.FlxAtlasFrames;
 import animate.FlxAnimateFrames;
+import funkin.audio.AudioCache;
 import funkin.graphics.FunkinSprite.AtlasSpriteSettings;
 import openfl.utils.AssetType;
 import funkin.util.macro.ConsoleMacro;
@@ -114,7 +115,9 @@ class Paths implements ConsoleClass
 
   public static function sound(key:String, ?library:String):String
   {
-    return getPath('sounds/$key.${Constants.EXT_SOUND}', SOUND, library);
+    final path:String = getPath('sounds/$key.${Constants.EXT_SOUND}', SOUND, library);
+    AudioCache.trackSound(path);
+    return path;
   }
 
   public static function soundRandom(key:String, min:Int, max:Int, ?library:String):String
@@ -124,7 +127,9 @@ class Paths implements ConsoleClass
 
   public static function music(key:String, ?library:String):String
   {
-    return getPath('music/$key.${Constants.EXT_SOUND}', MUSIC, library);
+    final path:String = getPath('music/$key.${Constants.EXT_SOUND}', MUSIC, library);
+    AudioCache.trackMusic(path);
+    return path;
   }
 
   public static function videos(key:String, ?library:String):String
